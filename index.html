@@ -140,6 +140,7 @@ button:disabled { opacity: .35; cursor: default; }
 @keyframes pop { 0% { transform: scale(.3); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
 .cell.bad .piece { filter: drop-shadow(0 0 3px var(--ember)) drop-shadow(0 0 1px var(--ember)) saturate(.75); }
 .cell.bad { outline: 3px solid var(--ember); outline-offset: -3px; }
+.build { margin: 4px 0 8px; font-size: .78em; opacity: .6; text-align: center; }
 .replay { margin: 0; }
 .replay button { min-height: 36px; padding: 4px 12px; font-size: .84em; box-shadow: none; background: transparent; border-color: rgba(255,250,240,.35); }
 .tuto { background: linear-gradient(#fff7dd, #f7e6b4); color: #2a2010; border-radius: 12px; padding: 7px 14px 3px; box-shadow: 0 3px 0 #b99a4a, 0 8px 16px rgba(5,8,28,.35); border-left: 6px solid #d9603f; }
@@ -451,6 +452,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
     <label class="toggle" for="optEasy">편한 순회 (항의 편지 없음) <input type="checkbox" id="optEasy"></label>
     <label class="toggle" for="optOpen">모든 장 열어 두기 (시험용) <input type="checkbox" id="optOpen"></label>
+    <p class="build" id="buildStamp"></p>
     <button type="button" data-close="settingsVeil">닫기</button>
     <button type="button" class="quiet" id="wipe">일지 처음부터 다시 쓰기</button>
     <div class="two" id="wipeAsk" hidden>
@@ -579,6 +581,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
+var BUILD = '11월 20일 14:14';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1272,7 +1275,7 @@ document.addEventListener('keydown', function (e) { if (cutState && (e.key === '
 $('toChapters').addEventListener('click', function () { $('reportVeil').classList.remove('on'); go('chapters'); });
 $('openSettings').addEventListener('click', function () {
   $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optBig').checked = save.big; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
-  $('wipeAsk').hidden = true; $('settingsVeil').classList.add('on');
+  $('wipeAsk').hidden = true; $('buildStamp').textContent = '판: ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
 $('optSound').addEventListener('change', function () { save.sound = this.checked; store(); if (save.sound) play('place'); });
