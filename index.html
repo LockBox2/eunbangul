@@ -637,7 +637,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 16:08';
+var BUILD = '11월 20일 18:13';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1011,16 +1011,16 @@ function renderMail() {
 // 순회표 화면이 한 화면에 다 들어오게 판 크기를 줄인다 (아래로 밀어 내릴 일이 없게)
 function fitBoard() {
   if (!$('play').classList.contains('on')) return;
-  var partner = $('partner'), guided = tuto && tuto.steps[tuto.i].expect !== 'free';
-  partner.classList.remove('squeezed'); boardEl.style.width = '';
+  var partner = $('partner');
+  // 연습 띠가 떠 있는 동안에는 리나 자리를 접는다 (안내 띠가 대신 말한다)
+  partner.classList.toggle('squeezed', !!tuto); boardEl.style.width = '';
   var fit = function () {
     boardEl.style.width = '';
     var over = document.documentElement.scrollHeight - window.innerHeight;
     if (over > 0) { var w = boardEl.getBoundingClientRect().width; boardEl.style.width = Math.max(200, Math.floor(w - over)) + 'px'; }
     return boardEl.getBoundingClientRect().width;
   };
-  // 연습 중에 칸이 너무 작아지면 리나 자리를 잠깐 접는다 (안내 띠가 대신 말한다)
-  if (fit() < P.n * 42 && guided) { partner.classList.add('squeezed'); fit(); }
+  fit();
 }
 window.addEventListener('resize', fitBoard);
 // 연습: 첫 세 판에서 한 동작씩 시킨다. 시킨 동작만 받고, 하면 다음으로 넘어간다
