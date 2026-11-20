@@ -509,7 +509,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <label class="toggle" for="optMusic">배경 음악 <input type="checkbox" id="optMusic"></label>
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
     <label class="toggle" for="optEasy">편한 순회 (항의 편지 없음) <input type="checkbox" id="optEasy"></label>
-    <label class="toggle" for="optOpen">모든 장 열어 두기 (시험용) <input type="checkbox" id="optOpen"></label>
+    <label class="toggle" for="optOpen" id="optOpenRow" hidden>모든 장 열어 두기 (시험용) <input type="checkbox" id="optOpen"></label>
     <p class="build" id="buildStamp"></p>
     <button type="button" data-close="settingsVeil">닫기</button>
     <button type="button" class="quiet" id="wipe">일지 처음부터 다시 쓰기</button>
@@ -642,7 +642,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 21:00';
+var BUILD = '11월 20일 22:39';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -675,7 +675,10 @@ function chaptersDone() {
 }
 function chapterOf(i) { return Math.floor(i / CHAPTER_SIZE); }
 function clearedIn(c) { var k = 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE; i++) if (isCleared(i)) k++; return k; }
-function unlocked(c) { return c === 0 || save.openAll || clearedIn(c - 1) >= UNLOCK_AT; }
+// 모든 장 열어 두기는 시험용이다. 주소 끝에 ?test=1 을 붙였을 때만 보이고 먹는다
+var TEST = /[?&]test=1\b/.test(location.search);
+function openAll() { return TEST && save.openAll; }
+function unlocked(c) { return c === 0 || openAll() || clearedIn(c - 1) >= UNLOCK_AT; }
 function households() { return 91 + Math.round(43 * save.cleared.length / PUZZLES.length); }
 function nextOpen() {
   for (var i = 0; i < PUZZLES.length; i++) if (!isCleared(i) && unlocked(chapterOf(i))) return i;
@@ -1398,7 +1401,7 @@ function finish() {
   if (firstTime) save.cleared.push(i);
   store();
   var chapterEnd = chaptersDone() > before, last = i === PUZZLES.length - 1;
-  var ch = chapterOf(i), opened = !last && clearedIn(ch) === UNLOCK_AT && !save.openAll && (ch + 1) * CHAPTER_SIZE < PUZZLES.length;
+  var ch = chapterOf(i), opened = !last && clearedIn(ch) === UNLOCK_AT && !openAll() && (ch + 1) * CHAPTER_SIZE < PUZZLES.length;
   var nextLocked = !last && !unlocked(chapterOf(i + 1));
   for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
   say('clear');
@@ -1570,6 +1573,7 @@ $('optMusic').addEventListener('change', function () { save.music = this.checked
 $('optSound').addEventListener('change', function () { save.sound = this.checked; store(); if (save.sound) play('place'); });
 $('optBig').addEventListener('change', function () { save.big = this.checked; store(); document.body.classList.toggle('big', save.big); });
 $('optEasy').addEventListener('change', function () { save.easy = this.checked; store(); });
+$('optOpenRow').hidden = !TEST;
 $('optOpen').addEventListener('change', function () { save.openAll = this.checked; store(); renderHome(); });
 $('wipe').addEventListener('click', function () { $('wipeAsk').hidden = false; });
 $('wipeNo').addEventListener('click', function () { $('wipeAsk').hidden = true; });
