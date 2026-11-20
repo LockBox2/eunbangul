@@ -179,6 +179,18 @@ body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30
 .cell.why { animation: whyblink .45s ease-in-out 4; z-index: 2; }
 @keyframes whyblink { 50% { filter: brightness(.5) saturate(1.5); outline: 3px solid var(--ember); outline-offset: -2px; } }
 @media (prefers-reduced-motion: reduce) { .cell.why { animation: none; outline: 3px solid var(--ember); outline-offset: -2px; } }
+/* 이야기 화면: 그림 아래쪽으로 대사가 스며들고, 남는 위아래는 같은 그림을 흐리게 깔아 채운다 */
+main#cut { justify-content: center; position: relative; overflow: hidden; background: #0b0d1c; }
+main#cut .cutbg { position: absolute; inset: -30px; background: center / cover no-repeat; filter: blur(22px) brightness(.32) saturate(1.1); transform: scale(1.1); pointer-events: none; }
+main#cut .cutbar { z-index: 4; }
+main#cut .cutart { flex: none; z-index: 1; max-height: 68vh; max-height: 68dvh; background: transparent; box-shadow: 0 0 40px rgba(0,0,0,.6); }
+main#cut .cutart::after { height: 34%; background: linear-gradient(transparent, rgba(11,13,28,.96)); }
+main#cut .cutbox { flex: none; margin: -74px 0 0; padding: 12px 22px 58px; min-height: 166px; background: linear-gradient(rgba(11,13,28,0), rgba(11,13,28,.96) 28%, rgba(11,13,28,.96) 72%, rgba(11,13,28,0)); color: #fffaf0; border-radius: 0; box-shadow: none; z-index: 2; }
+main#cut .who { margin: 0 0 8px -2px; padding: 3px 13px; background: #fffaf0; color: #1a2038; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
+main#cut .line { font-size: 1.08em; line-height: 1.65; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+main#cut .cutbox.narr .line { color: #d9d3c2; padding-top: 22px; }
+main#cut .more { color: #d9d3c2; right: 20px; bottom: 30px; text-shadow: 0 1px 3px #000; }
+main#cut #cutSkip { color: #d9d3c2; left: 14px; bottom: 24px; text-shadow: 0 1px 3px #000; }
 .build { margin: 4px 0 8px; font-size: .78em; opacity: .6; text-align: center; }
 .replay { margin: 0; }
 .replay button { min-height: 36px; padding: 4px 12px; font-size: .84em; box-shadow: none; background: transparent; border-color: rgba(255,250,240,.35); }
@@ -381,6 +393,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 
 <!-- 순회표 -->
 <main class="view" id="cut" aria-live="polite">
+  <div class="cutbg" id="cutBg"></div>
   <div class="cutbar"><span id="cutStep"></span></div>
   <div class="cutart"><img id="cutImg" alt="" width="880" height="1100"></div>
   <div class="cutbox" id="cutBox"><b class="who" id="cutWho"></b><p class="line" id="cutLine"></p><span class="more" aria-hidden="true">▼ 눌러서 넘기기</span><button type="button" id="cutSkip">건너뛰기</button></div>
@@ -623,7 +636,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 15:25';
+var BUILD = '11월 20일 15:43';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -769,7 +782,7 @@ function cutStepOn(newCut) {
   if (s.c >= s.C.cuts.length) { cutEnd(); return; }
   var k = s.C.cuts[s.c], ln = k.lines[s.l], img = $('cutImg');
   if (newCut) {
-    img.src = k.img; img.alt = k.alt;
+    img.src = k.img; img.alt = k.alt; $('cutBg').style.backgroundImage = 'url(' + k.img + ')';
     img.classList.remove('turn'); void img.offsetWidth; img.classList.add('turn');
   }
   $('cutStep').textContent = s.C.title + ' · ' + (s.c + 1) + ' / ' + s.C.cuts.length;
