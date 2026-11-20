@@ -176,6 +176,9 @@ body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30
 @keyframes holdghost { from { opacity: 0; transform: translateY(6%) scale(.9); } to { opacity: .6; transform: none; } }
 @keyframes holdring { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .cell .hold i { animation: none; opacity: .5; } .cell .hold rect { animation: none; stroke-dashoffset: 0; } }
+.cell.why { animation: whyblink .45s ease-in-out 4; z-index: 2; }
+@keyframes whyblink { 50% { filter: brightness(.5) saturate(1.5); outline: 3px solid var(--ember); outline-offset: -2px; } }
+@media (prefers-reduced-motion: reduce) { .cell.why { animation: none; outline: 3px solid var(--ember); outline-offset: -2px; } }
 .build { margin: 4px 0 8px; font-size: .78em; opacity: .6; text-align: center; }
 .replay { margin: 0; }
 .replay button { min-height: 36px; padding: 4px 12px; font-size: .84em; box-shadow: none; background: transparent; border-color: rgba(255,250,240,.35); }
@@ -528,11 +531,14 @@ var LINES = {
   cartCell: ['거긴 수레 자리예요. 사람은 못 서요.', '수레 위에 올라가면 마부 아저씨한테 혼나요.'],
   cartOver: ['수레에 마석이 그만큼 없어요. 한 사람은 빈손으로 가요.', '수레 둘레에 사람이 너무 많아요.'],
   cartShort: ['다 보냈는데 수레에 마석이 남았어요. 누가 안 받아 갔나 봐요.'],
+  whyHouse: ['거기 보내면 {h}에 갈 자리가 없어져요. 댁마다 한 명은 꼭 가야 해요.'],
+  whyLine: ['거기 보내면 반짝이는 줄에 갈 자리가 없어져요. 줄마다 한 명은 꼭 가야 해요.'],
+  whyCart: ['거기 보내면 수레 둘레에 사람이 넘쳐요.'],
   wrongCart: ['수레에서 받아 갈 사람은 따로 있대요. 편지가 왔어요.'],
   wrongHouse: ['{h}는 다른 칸으로 가야 해요. 편지가 왔어요.', '{h}에서 편지가 왔어요. 그 칸이 아니래요.'],
   wrongOther: ['거기 보내면 {h} 쪽 순회가 꼬여요. 편지가 왔어요.', '{h}에서 편지가 왔어요. 그 자리는 곤란하대요.']
 };
-var FACE = { houseBig: 'awkward', cartOver: 'awkward', cartShort: 'awkward', cartCell: 'awkward', wrongCart: 'flustered', wrongHouse: 'flustered', wrongOther: 'flustered', row: 'awkward', house: 'awkward', near: 'awkward', wrong: 'flustered', idle: 'flustered', clear: 'joy' };
+var FACE = { whyHouse: 'flustered', whyLine: 'flustered', whyCart: 'flustered', houseBig: 'awkward', cartOver: 'awkward', cartShort: 'awkward', cartCell: 'awkward', wrongCart: 'flustered', wrongHouse: 'flustered', wrongOther: 'flustered', row: 'awkward', house: 'awkward', near: 'awkward', wrong: 'flustered', idle: 'flustered', clear: 'joy' };
 var POSTSCRIPTS = [
  [
   "인수인계",
@@ -617,7 +623,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
-var BUILD = '11월 20일 14:58';
+var BUILD = '11월 20일 15:05';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1118,6 +1124,34 @@ function tryPlace(r, c) {
   if (livesOn() && P.sol[r] !== c) { wrong(r, c); return; }
   snapshot(); state[r][c] = 2; moves++; afterChange(r, c);
 }
+// 거기 놓으면 왜 안 되는지: 그 한 수 때문에 갈 자리가 없어지는 댁이나 줄을 찾아 그 칸들을 돌려준다
+function whyNot(r, c) {
+  var n = P.n, pcs = [], a, b, g;
+  for (a = 0; a < n; a++) for (b = 0; b < n; b++) if (state[a][b] === 2) pcs.push([a, b]);
+  var have = {}; pcs.forEach(function (p) { have[P.reg[p[0]][p[1]]] = (have[P.reg[p[0]][p[1]]] || 0) + 1; });
+  var quota = function (k) { return k === P.big ? 2 : 1; };
+  var hits = function (p, x, y) { return p[0] === x || p[1] === y || (Math.abs(p[0] - x) <= 1 && Math.abs(p[1] - y) <= 1); };
+  var gx = P.reg[r][c], fullAfter = (have[gx] || 0) + 1 >= quota(gx);
+  var byX = function (x, y) { return hits([r, c], x, y) || (P.reg[x][y] === gx && fullAfter); };
+  var byOld = function (x, y) { return !!cartAt(x, y) || pcs.some(function (p) { return hits(p, x, y); }) || (have[P.reg[x][y]] || 0) >= quota(P.reg[x][y]); };
+  var unit = function (cells, need) {
+    var left = cells.filter(function (q) { return !(q[0] === r && q[1] === c) && !byOld(q[0], q[1]) && !byX(q[0], q[1]); });
+    if (left.length >= need) return null;
+    var lost = cells.filter(function (q) { return !(q[0] === r && q[1] === c) && !byOld(q[0], q[1]) && byX(q[0], q[1]); });
+    return lost.length ? lost : null;
+  };
+  for (g = 0; g < P.m; g++) {
+    var need = quota(g) - (have[g] || 0) - (g === gx ? 1 : 0); if (need <= 0) continue;
+    var cells = []; for (a = 0; a < n; a++) for (b = 0; b < n; b++) if (P.reg[a][b] === g) cells.push([a, b]);
+    var lost = unit(cells, need); if (lost) return { kind: 'whyHouse', cells: lost, h: houseOf[g].name };
+  }
+  for (a = 0; a < n; a++) {
+    if (a !== r && !pcs.some(function (p) { return p[0] === a; })) { var rowc = []; for (b = 0; b < n; b++) rowc.push([a, b]); var l1 = unit(rowc, 1); if (l1) return { kind: 'whyLine', cells: l1 }; }
+    if (a !== c && !pcs.some(function (p) { return p[1] === a; })) { var colc = []; for (b = 0; b < n; b++) colc.push([b, a]); var l2 = unit(colc, 1); if (l2) return { kind: 'whyLine', cells: l2 }; }
+  }
+  for (var k = 0; k < P.carts.length; k++) { var kt = P.carts[k]; if (Math.abs(kt.r - r) <= 1 && Math.abs(kt.c - c) <= 1 && cartCount(kt) + 1 > kt.k) return { kind: 'whyCart', cells: [[kt.r, kt.c]] }; }
+  return null;
+}
 function wrong(r, c) {
   mistakes++; moves++;
   state[r][c] = 1; render(); renderMail(); armIdle();
@@ -1130,7 +1164,11 @@ function wrong(r, c) {
     if (r2 === r || c2 === c || (Math.abs(r2 - r) <= 1 && Math.abs(c2 - c) <= 1)) { other = houseOf[P.reg[r2][c2]].name; break; }
   }
   var byCart = P.carts.some(function (k) { return Math.abs(k.r - r) <= 1 && Math.abs(k.c - c) <= 1; });
-  if (other) say('wrongOther', { h: other }); else if (byCart) say('wrongCart'); else say('wrongHouse', { h: houseOf[P.reg[r][c]].name });
+  var why = whyNot(r, c);
+  if (why) {
+    say(why.kind, { h: why.h || '' });
+    why.cells.forEach(function (q) { var w = cellEl(q[0], q[1]); w.classList.remove('why'); void w.offsetWidth; w.classList.add('why'); setTimeout(function () { w.classList.remove('why'); }, 2000); });
+  } else if (other) say('wrongOther', { h: other }); else if (byCart) say('wrongCart'); else say('wrongHouse', { h: houseOf[P.reg[r][c]].name });
   if (mistakes >= MAX_MAIL) {
     done = true; clearTimeout(idleTimer);
     $('overMore').hidden = extraUsed; $('overNote').hidden = extraUsed;
