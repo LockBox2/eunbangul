@@ -1,5 +1,5 @@
 // 은방울 관리일지: 한 번 받은 파일을 기기에 넣어 두고 인터넷 없이도 연다
-var CACHE = 'eunbangul-37953cd7';
+var CACHE = 'eunbangul-83c59c23';
 var FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "img/btn-navy.webp", "img/btn-wood.webp", "img/cart.webp", "img/desk.webp", "img/donkey-base.webp", "img/donkey-stubborn.webp", "img/icon.webp", "img/logo.webp", "img/office.webp", "img/op1.webp", "img/op2.webp", "img/op3.webp", "img/op4.webp", "img/op5.webp", "img/op6.webp", "img/plaque.webp", "img/rina-awkward.webp", "img/rina-base.webp", "img/rina-flustered.webp", "img/rina-joy.webp", "img/staff-1.webp", "img/staff-2.webp", "img/staff-3.webp", "img/staff-4.webp", "img/staff-5.webp", "img/staff-6.webp", "img/staff-7.webp", "img/staff-8.webp", "img/staff-9.webp", "img/stamp.webp", "img/xmark.webp", "snd/clash.mp3", "snd/clear.mp3", "snd/hint.mp3", "snd/place.mp3"];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); })); });
 self.addEventListener('activate', function (e) {

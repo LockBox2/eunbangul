@@ -194,10 +194,10 @@ body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30
 .actions button.lit { outline: 3px solid #fff; outline-offset: 2px; animation: litpulse 1.1s ease-in-out infinite; }
 @keyframes litpulse { 50% { outline-color: #ffd76a; } }
 .finger { position: absolute; left: 0; top: 0; font-size: 30px; line-height: 1; pointer-events: none; z-index: 6; filter: drop-shadow(0 2px 2px rgba(0,0,0,.55)); animation: fingertap 1s ease-in-out infinite; }
-.finger.twice { animation: fingertwice 1.3s ease-in-out infinite; }
+.finger.twice { animation: fingerpress 1.5s ease-in-out infinite; }
 .finger.slide { animation: fingerslide 1.6s ease-in-out infinite; }
 @keyframes fingertap { 0%, 100% { margin-top: 10px; } 50% { margin-top: 0; } }
-@keyframes fingertwice { 0%, 30%, 60%, 100% { margin-top: 10px; } 15%, 45% { margin-top: 0; } }
+@keyframes fingerpress { 0%, 100% { margin-top: 12px; transform: none; } 18%, 78% { margin-top: 0; transform: scale(.88); } }
 @keyframes fingerslide { 0%, 15% { margin-left: 0; margin-top: 0; } 80%, 100% { margin-left: var(--dx); margin-top: var(--dy); } }
 @media (prefers-reduced-motion: reduce) { .finger, .board.tutoOn .cell.lit, .actions button.lit { animation: none; } }
 #cut { padding: 0; gap: 0; background: #14182e; min-height: 100vh; min-height: 100dvh; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -474,7 +474,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
       <li id="ruleBig" hidden>숫자 2가 붙은 큰 댁에는 관리원을 두 명 보냅니다. 가로줄과 세로줄은 그대로 한 명씩입니다</li>
       <li id="ruleCart" hidden>수레 칸 둘레 여덟 칸에는 수레에 적힌 숫자만큼만 보냅니다. 수레 칸에는 못 섭니다</li>
     </ul>
-    <p>칸을 한 번 누르면 못 가는 칸입니다. 관리원은 빠르게 두 번 누르거나 길게 눌러서 보냅니다. 손가락으로 밀면 못 가는 칸을 이어서 칠하고, X에서 시작해 밀면 X를 이어서 지웁니다.</p>
+    <p>칸을 한 번 누르면 못 가는 칸입니다. 관리원은 칸을 길게 눌러서 보냅니다. 빠르게 두 번 눌러도 됩니다. 손가락으로 밀면 못 가는 칸을 이어서 칠하고, X에서 시작해 밀면 X를 이어서 지웁니다.</p>
     <p>2장부터는 맞지 않는 칸에 보내면 그 댁에서 항의 편지가 옵니다. 세 통이 쌓이면 순회표를 다시 짭니다.</p>
     <button type="button" data-close="rulesVeil">알겠습니다</button>
   </div>
@@ -617,7 +617,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
-var BUILD = '11월 20일 14:40';
+var BUILD = '11월 20일 14:58';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -995,7 +995,7 @@ function tutoPlan(i) {
     var rest = row.filter(function (q) { return q !== x; });
     return [
       { text: '관리원이 못 가는 칸에는 X를 해 둡니다. 밝은 칸을 한 번 눌러 보세요.', expect: 'x', cells: [x], ok: function () { return is(x, 1); } },
-      { text: (one ? name + '은 한 칸뿐이라 갈 곳이 여기밖에 없어요. ' : '') + '밝은 칸을 빠르게 두 번 눌러 관리원을 보내세요. 길게 눌러도 됩니다.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
+      { text: (one ? name + '은 한 칸뿐이라 갈 곳이 여기밖에 없어요. ' : '') + '밝은 칸을 꾹 길게 눌러 관리원을 보내세요. 테두리가 다 차오르면 놓입니다.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
       { text: '관리원이 간 가로줄에는 더 못 보내요. 밝은 칸들을 손가락으로 쭉 밀어 X를 칠해 보세요.', expect: 'paint', cells: rest, ok: function () { return rest.every(function (q) { return is(q, 1); }); } },
       { text: '잘못 눌렀을 때는 되돌리기를 누르면 방금 한 일이 취소됩니다. 한 번 눌러 보세요.', expect: 'undo', button: 'undo', ok: function () { return tuto.undone; } },
       { text: '방금 칠한 X가 사라졌죠. 이제 남은 칸을 채워 보세요. 가로줄, 세로줄, 같은 색 댁마다 관리원 한 명씩입니다.', expect: 'free' }
@@ -1008,7 +1008,7 @@ function tutoPlan(i) {
     }
     var dg = ring.filter(function (q) { return q[0] !== S[0] && q[1] !== S[1]; })[0] || ring[0];
     return [
-      { text: (one ? '한 칸짜리 댁부터 찾으면 쉬워요. ' : '') + '밝은 칸에 관리원을 보내세요. 빠르게 두 번 누릅니다.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
+      { text: (one ? '한 칸짜리 댁부터 찾으면 쉬워요. ' : '') + '밝은 칸을 길게 눌러 관리원을 보내세요.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
       { text: '관리원끼리는 붙어 있으면 안 돼요. 대각선도 마찬가지예요. 어떻게 되는지 일부러 밝은 칸에 한 명 더 보내 보세요.', expect: 'place', cells: [dg], ok: function () { return is(dg, 2); } },
       { text: '둘 다 빨갛게 변했죠. 서로 붙어서 그래요. 밝은 칸의 관리원을 한 번 눌러 거두세요.', expect: 'remove', cells: [dg], ok: function () { return !is(dg, 2); } },
       { text: '그래서 관리원 둘레 여덟 칸은 전부 못 가는 칸이에요. 밝은 칸마다 X를 해 보세요. 밀어서 칠해도 됩니다.', expect: 'x', cells: ring, ok: function () { return ring.every(function (q) { return is(q, 1); }); } },
@@ -1024,7 +1024,7 @@ function tutoPlan(i) {
     var others = around.filter(function (q) { return P.sol[q[0]] !== q[1]; });
     return [
       { text: two ? '숫자 2가 적힌 수레예요. 수레 둘레의 밝은 칸에 관리원이 딱 두 명 서야 합니다. 그 두 사람도 서로 붙으면 안 돼요.' : '새 일이 생겼어요. 교체할 마석을 실은 수레입니다. 수레에 적힌 숫자 1은, 수레 둘레의 밝은 칸에 관리원이 딱 한 명 선다는 뜻이에요.', expect: 'read', cells: around, show: [[kt.r, kt.c]] },
-      { text: two ? '이 판에서는 밝은 두 칸이 그 자리예요. 두 칸 모두 관리원을 보내 보세요.' : '이 판에서는 밝은 칸이 그 자리예요. 관리원을 보내 보세요. 빠르게 두 번 누릅니다.', expect: 'place', cells: go2, ok: function () { return go2.every(function (q) { return is(q, 2); }); } },
+      { text: two ? '이 판에서는 밝은 두 칸이 그 자리예요. 두 칸 모두 관리원을 보내 보세요.' : '이 판에서는 밝은 칸이 그 자리예요. 길게 눌러 관리원을 보내 보세요.', expect: 'place', cells: go2, ok: function () { return go2.every(function (q) { return is(q, 2); }); } },
       { text: '수레 숫자가 남색으로 바뀌었죠. 다 찼다는 표시예요. 이제 둘레의 나머지 칸에는 못 보냅니다. 밝은 칸마다 X를 해 보세요.', expect: 'x', cells: others.filter(function (q) { return !cartAt(q[0], q[1]); }), ok: function () { return others.every(function (q) { return cartAt(q[0], q[1]) || !is(q, 0); }); } },
       { text: '수레가 선 칸에는 관리원이 못 섭니다. 나머지 규칙은 그대로예요. 남은 칸을 채워 보세요.', expect: 'free' }
     ];
@@ -1102,7 +1102,7 @@ function tutoCheck() {
 }
 function tutoEnd() { if (tuto) { save.tutoSeen[tuto.stage] = 1; store(); } tuto = null; tutoClear(); $('tuto').hidden = true; if (!done) { renderMail(); fitBoard(); } }
 
-// 한 번 누르기: 빈칸은 못 감, 못 감은 빈칸, 관리원은 거두기. 빠르게 두 번이면 보내기.
+// 한 번 누르기: 빈칸은 못 감, 못 감은 빈칸, 관리원은 거두기. 보내기는 길게 누르기가 기본이고, 빠르게 두 번은 단축이다.
 function tap(r, c) {
   if (done || busy) return;
   if (cartAt(r, c)) { say('cartCell'); return; }
