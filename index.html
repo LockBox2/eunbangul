@@ -723,7 +723,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 07:33';
+var BUILD = '11월 21일 07:42';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1490,6 +1490,8 @@ function tryPlace(r, c) {
   if (done || busy || state[r][c] === 2 || cartAt(r, c)) return;
   if (!tutoOk('place', r, c)) return;
   if (livesOn() && P.sol[r] !== c) { wrong(r, c); return; }
+  // 편지가 안 오는 1장과 편한 순회에서도 틀린 자리에 세운 횟수는 센다 (은방울이 깎인다)
+  if (P.sol[r] !== c && !guided()) slips++;
   snapshot(); state[r][c] = 2; moves++; afterChange(r, c);
 }
 // 거기 놓으면 왜 안 되는지: 그 한 수 때문에 갈 자리가 없어지는 댁이나 줄을 찾아 그 칸들을 돌려준다
@@ -1596,7 +1598,7 @@ function finish() {
   say('clear');
   duck(true);
   setTimeout(function () { play('clear'); }, 150);
-  $('rbody').textContent = (i + 1) + '번 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단' + (livesOn() ? ', 항의 편지 ' + mistakes + '통' : '') + '.' + (chapterEnd ? ' ' + Math.ceil((i + 1) / CHAPTER_SIZE) + '장을 덮습니다.' : '') + (households() > homesBefore ? ' 관리 고객이 ' + households() + '댁으로 늘었습니다.' : '') + (askRoute ? ' 이제 이 장의 순회 길을 잡을 차례입니다.' : '');
+  $('rbody').textContent = (i + 1) + '번 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단' + (livesOn() ? ', 항의 편지 ' + mistakes + '통' : ', 잘못 세운 횟수 ' + slips + '번') + '.' + (chapterEnd ? ' ' + Math.ceil((i + 1) / CHAPTER_SIZE) + '장을 덮습니다.' : '') + (households() > homesBefore ? ' 관리 고객이 ' + households() + '댁으로 늘었습니다.' : '') + (askRoute ? ' 이제 이 장의 순회 길을 잡을 차례입니다.' : '');
   var lastOfChapter = (i + 1) % CHAPTER_SIZE === 0;
   $('rps').hidden = !lastOfChapter;
   if (lastOfChapter) $('rps').textContent = POSTSCRIPTS[(Math.ceil((i + 1) / CHAPTER_SIZE) - 1) % POSTSCRIPTS.length][1] + ' (리나)';
