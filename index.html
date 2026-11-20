@@ -145,6 +145,25 @@ button:disabled { opacity: .35; cursor: default; }
 @keyframes petalfall { 0% { transform: translateY(0) rotate(0); opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(var(--fall, 80vh)) rotate(var(--rot, 160deg)); opacity: 0; } }
 @keyframes petalsway { from { transform: translateX(-9px); } to { transform: translateX(9px); } }
 @media (prefers-reduced-motion: reduce) { .petal { display: none; } }
+/* 순회표 화면: 책상 위에 판이 놓인 모습. 재료는 나무, 종이, 은 */
+body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30%, rgba(16,10,8,.2) 70%, rgba(16,10,8,.5)), url("img/desk.webp") center / cover no-repeat fixed; background-color: #3a2319; }
+#play .bar .stage { background: url("img/plaque.webp") center / 100% 100% no-repeat; color: #4a2e1a; padding: 17px 14px 13px; font-size: .78em; line-height: 1.2; font-weight: 600; filter: drop-shadow(0 3px 3px rgba(0,0,0,.45)); }
+#play .bar .stage b { color: #2e1a0e; font-size: 1.3em; text-shadow: 0 1px 0 rgba(255,235,205,.5); }
+#play .bar .back { background: linear-gradient(#34406f, #232b52); border: 2px solid #c9cfdd; box-shadow: 0 3px 0 #10142c, 0 6px 10px rgba(0,0,0,.4); color: #fffaf0; }
+#play .board { background: linear-gradient(#4b3329, #2f1e18); border: 2px solid #c9cfdd; box-shadow: 0 0 0 2px #1c120e, 0 8px 0 #1c120e, 0 18px 30px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.1); }
+#play .mail { color: #f0dccb; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+#play .mail .env svg { color: #6b5346; }
+#play .houses { gap: 5px 6px; color: #2a2010; font-size: .76em; }
+#play .houses span { background: linear-gradient(#fffaf0, #efe5cf); border-radius: 5px; padding: 2px 8px 2px 5px; box-shadow: 0 2px 0 rgba(0,0,0,.35); white-space: nowrap; }
+#play .houses i { border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(42,32,16,.25); }
+#play .actions button, #play .actions #hint { background: url("img/btn-navy.webp") center / 100% 100% no-repeat; border: 0; box-shadow: none; border-radius: 16px; color: #fffaf0; padding: 9px 6px 15px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.45)); font-weight: 600; }
+#play .actions #hint { background-image: url("img/btn-wood.webp"); color: #3a2414; font-weight: 700; }
+#play .actions button:active:not(:disabled) { transform: translateY(2px); filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.sheet .sign { position: relative; margin: 14px 0 10px; padding-right: 4px; }
+.sheet .stamp { position: absolute; right: 38px; top: -24px; width: 72px; height: 72px; opacity: 0; pointer-events: none; }
+.veil.on .sheet .stamp { animation: stampin .32s .55s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes stampin { from { opacity: 0; transform: scale(1.9) rotate(-22deg); } to { opacity: .82; transform: scale(1) rotate(-9deg); } }
+@media (prefers-reduced-motion: reduce) { .veil.on .sheet .stamp { animation: none; opacity: .82; transform: rotate(-9deg); } }
 .build { margin: 4px 0 8px; font-size: .78em; opacity: .6; text-align: center; }
 .replay { margin: 0; }
 .replay button { min-height: 36px; padding: 4px 12px; font-size: .84em; box-shadow: none; background: transparent; border-color: rgba(255,250,240,.35); }
@@ -383,7 +402,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="sheet">
     <h2 id="rt">[영지 지점 보고]</h2>
     <p class="doc" id="rbody"></p>
-    <p class="sign">안나</p>
+    <p class="sign">안나<img class="stamp" src="img/stamp.webp" alt="" width="240" height="240"></p>
     <p class="memo" id="rmemo"></p>
     <p class="ps" id="rps"></p>
     <button type="button" id="next">다음 순회표</button>
@@ -586,7 +605,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
-var BUILD = '11월 20일 14:16';
+var BUILD = '11월 20일 14:27';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -594,7 +613,7 @@ var P = null, state = [], undoStack = [], moves = 0, hints = 0, done = false, ho
 var mistakes = 0, extraUsed = false, lastTap = null, MAX_MAIL = 3, busy = false;
 var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0 };
 
-['img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
+['img/desk.webp', 'img/plaque.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
 function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -637,6 +656,7 @@ function play(name) {
 // 화면 바꾸기
 function go(view) {
   ['home', 'chapters', 'play', 'cut'].forEach(function (v) { $(v).classList.toggle('on', v === view); });
+  document.body.classList.toggle('onPlay', view === 'play');
   clearTimeout(idleTimer);
   if (view === 'home') renderHome();
   if (view === 'chapters') renderChapters();
@@ -841,17 +861,11 @@ function wallsSvg(n, reg, big) {
   function mark(x, y, dir) { var k = x + ',' + y; deg[k] = (deg[k] || 0) + 1; dirs[k] = (dirs[k] || '') + dir; }
   for (var r = 0; r < n; r++) for (var c = 1; c < n; c++) if (reg[r][c - 1] !== reg[r][c]) { d += 'M' + c + ' ' + r + 'v1'; mark(c, r, 'v'); mark(c, r + 1, 'v'); }
   for (r = 1; r < n; r++) for (c = 0; c < n; c++) if (reg[r - 1][c] !== reg[r][c]) { d += 'M' + c + ' ' + r + 'h1'; mark(c, r, 'h'); mark(c + 1, r, 'h'); }
-  var w = n <= 5 ? 0.12 : n === 6 ? 0.135 : n === 7 ? 0.15 : n === 8 ? 0.17 : 0.19, posts = '';
-  for (var k in deg) {
-    if (deg[k] === 2 && (dirs[k] === 'vv' || dirs[k] === 'hh')) continue;
-    var p = k.split(',');
-    posts += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (w * 0.92) + '" fill="#8a6558" stroke="#2c1f1d" stroke-width="' + (w * 0.24) + '"/><circle cx="' + p[0] + '" cy="' + (p[1] - w * 0.22) + '" r="' + (w * 0.45) + '" fill="#f0dccb" stroke="none"/>';
-  }
-  return '<svg class="walls" viewBox="0 0 ' + n + ' ' + n + '" aria-hidden="true" fill="none" stroke-linecap="round">' +
-    '<path d="' + d + '" stroke="rgba(10,14,28,.35)" stroke-width="' + w + '" transform="translate(0 ' + (w * 0.35) + ')"/>' +
-    '<path d="' + d + '" stroke="#2c1f1d" stroke-width="' + (w * 1.3) + '"/>' +
-    '<path d="' + d + '" stroke="#96705f" stroke-width="' + (w * 0.86) + '"/>' +
-    '<path d="' + d + '" stroke="#f0dccb" stroke-width="' + (w * 0.3) + '" transform="translate(0 ' + (-w * 0.2) + ')"/>' + posts + bigMark(n, reg, big) + '</svg>';
+  var w = n <= 5 ? 0.085 : n === 6 ? 0.095 : n === 7 ? 0.105 : n === 8 ? 0.115 : 0.125;
+  return '<svg class="walls" viewBox="0 0 ' + n + ' ' + n + '" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="' + d + '" stroke="#1c120e" stroke-width="' + (w * 1.45) + '"/>' +
+    '<path d="' + d + '" stroke="#d9dde8" stroke-width="' + (w * 0.62) + '"/>' +
+    '<path d="' + d + '" stroke="#ffffff" stroke-opacity=".75" stroke-width="' + (w * 0.2) + '" transform="translate(0 ' + (-w * 0.16) + ')"/>' + bigMark(n, reg, big) + '</svg>';
 }
 // 큰 댁 표시: 그 댁의 맨 윗줄 맨 왼쪽 칸 모서리에 숫자 2
 function bigMark(n, reg, big) {
