@@ -323,6 +323,7 @@ body.routeOn #mail, body.routeOn #tuto, body.routeOn #houses, body.routeOn .boar
 .routebtn { width: 100%; margin-top: 8px; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(#1b2250, #141a40); }
 .routebtn img { width: 28px; height: 28px; }
 .routebtn small { font-size: .78em; opacity: .75; font-weight: 400; }
+.sheet #toRoute + #next:not([hidden]) { background: linear-gradient(#2e3a72, #1b2250); border-color: #2e3a72; box-shadow: 0 3px 0 #0b0f2a; }
 .routebtn.cleared { background: linear-gradient(#ffffff, #cfd6ea); color: #1a2038; border-color: #fff; box-shadow: 0 3px 0 #7f8ab0; }
 .routebtn .bl { display: flex; gap: 3px; }
 .routebtn .bl i { width: 7px; height: 7px; border-radius: 50%; background: #2a3266; }
@@ -387,7 +388,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 .sheet { background: linear-gradient(#fdf9ef, #f1e9d6); box-shadow: 0 6px 0 #b9ad92, 0 20px 40px rgba(0,0,0,.5); }
 .sheet button { background: linear-gradient(#2e3a72, #1b2250); box-shadow: 0 3px 0 #0b0f2a; }
 .sheet button.quiet { background: transparent; box-shadow: none; }
-.sheet #next, .sheet #overMore, .sheet #hayGive { background: linear-gradient(#ee7a55, var(--stone) 55%, #c24a2e); border-color: #f3a184; box-shadow: 0 4px 0 var(--stone-deep); color: #fff; }
+.sheet #next, .sheet #toRoute, .sheet #overMore, .sheet #hayGive { background: linear-gradient(#ee7a55, var(--stone) 55%, #c24a2e); border-color: #f3a184; box-shadow: 0 4px 0 var(--stone-deep); color: #fff; }
 .note { color: #aab3d4; }
 
 /* 시작 화면: 제목 띠, 지점장실 그림, 버튼 서랍을 위에서 아래로 쌓는다. 그림 위에는 아무것도 얹지 않는다. */
@@ -510,6 +511,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <p class="rtime num" id="rtime"></p>
     <p class="memo" id="rmemo"></p>
     <p class="ps" id="rps"></p>
+    <button type="button" id="toRoute" hidden>순회 길 잡기</button>
     <button type="button" id="next">다음 순회표</button>
     <button type="button" class="quiet" id="toChapters">일지로 돌아가기</button>
   </div>
@@ -714,7 +716,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 06:54';
+var BUILD = '11월 21일 07:20';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -760,7 +762,10 @@ function clearedIn(c) { var k = 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * 
 // 모든 장 열어 두기는 시험용이다. 주소 끝에 ?test=1 을 붙였을 때만 보이고 먹는다
 var TEST = /[?&]test=1\b/.test(location.search);
 function openAll() { return TEST && save.openAll; }
-function unlocked(c) { return c === 0 || openAll() || clearedIn(c - 1) >= UNLOCK_AT; }
+// 다음 장은 앞 장을 16판 풀고, 그 장의 순회 길(있으면)까지 잡아야 열린다.
+// 이미 그 장을 풀던 사람은 막지 않는다 (순회 길이 생기기 전에 넘어간 기록)
+function routeDue(c) { return !!ROUTES[c] && !(save.routes && save.routes[c]); }
+function unlocked(c) { return c === 0 || openAll() || clearedIn(c) > 0 || (clearedIn(c - 1) >= UNLOCK_AT && !routeDue(c - 1)); }
 function households() { return 91 + Math.round(43 * save.cleared.length / PUZZLES.length); }
 function nextOpen() {
   for (var i = 0; i < PUZZLES.length; i++) if (!isCleared(i) && unlocked(chapterOf(i))) return i;
@@ -828,7 +833,7 @@ function renderChapters() {
       btns += '<button type="button" class="num' + (cl ? ' cleared' : '') + (i === here ? ' here' : '') + '" data-stage="' + i + '"' + (open ? '' : ' disabled') + ' aria-label="' + (i + 1) + '번 순회표' + (cl ? ', 완료' : '') + (open ? '' : ', 잠김') + '">' + (i + 1) + (cl ? '<span class="bl" aria-label="은방울 ' + bellsOf(i) + '개">' + '<i class="on"></i>'.repeat(bellsOf(i)) + '<i></i>'.repeat(3 - bellsOf(i)) + '</span>' + (save.best && save.best[i] ? '<small>' + clockShort(save.best[i]) + '</small>' : '') : '') + '</button>';
     }
     var need = open ? 0 : UNLOCK_AT - clearedIn(c - 1);
-    html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + '"><header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + (got ? ' · 은방울 ' + bellsIn(c) + ' / ' + (CHAPTER_SIZE * 3 + (ROUTES[c] ? 3 : 0)) : '') + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">앞 장을 ' + need + '판 더 풀면 열립니다.</p>') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote">' + POSTSCRIPTS[c][1] + '</p>' : '') + '<div class="stages">' + btns + '</div>' + (ROUTES[c] ? '<button type="button" class="routebtn' + (save.routes && save.routes[c] ? ' cleared' : '') + '" data-route="' + c + '"' + (routeOpen(c) ? '' : ' disabled') + '><img src="img/donkey-base.webp" alt="">순회 길 잡기' + (save.routes && save.routes[c] ? '<span class="bl" aria-label="은방울 3개"><i></i><i></i><i></i></span>' : '<small>' + (routeOpen(c) ? '덤 · 풀면 은방울 셋' : '이 장을 ' + UNLOCK_AT + '판 풀면 열립니다') + '</small>') + '</button>' : '') + '</section>';
+    html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + '"><header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + (got ? ' · 은방울 ' + bellsIn(c) + ' / ' + (CHAPTER_SIZE * 3 + (ROUTES[c] ? 3 : 0)) : '') + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">' + (need > 0 ? '앞 장을 ' + need + '판 더 풀면' + (routeDue(c - 1) ? ', 그리고 순회 길을 잡으면' : '') + ' 열립니다.' : '앞 장의 순회 길을 잡으면 열립니다.') + '</p>') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote">' + POSTSCRIPTS[c][1] + '</p>' : '') + '<div class="stages">' + btns + '</div>' + (ROUTES[c] ? '<button type="button" class="routebtn' + (save.routes && save.routes[c] ? ' cleared' : '') + '" data-route="' + c + '"' + (routeOpen(c) ? '' : ' disabled') + '><img src="img/donkey-base.webp" alt="">순회 길 잡기' + (save.routes && save.routes[c] ? '<span class="bl" aria-label="은방울 3개"><i></i><i></i><i></i></span>' : '<small>' + (routeOpen(c) ? '덤 · 풀면 은방울 셋' : '이 장을 ' + UNLOCK_AT + '판 풀면 열립니다') + '</small>') + '</button>' : '') + '</section>';
   }
   $('chapterList').innerHTML = html;
 }
@@ -1573,12 +1578,15 @@ function finish() {
   say('clear');
   duck(true);
   setTimeout(function () { play('clear'); }, 150);
-  $('rbody').textContent = (i + 1) + '번 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단' + (livesOn() ? ', 항의 편지 ' + mistakes + '통' : '') + '.' + (chapterEnd ? ' ' + Math.ceil((i + 1) / CHAPTER_SIZE) + '장을 덮습니다.' : '') + (households() > homesBefore ? ' 관리 고객이 ' + households() + '댁으로 늘었습니다.' : '') + (opened ? ' 다음 장 일지를 펼칠 수 있습니다.' : '') + (firstTime && clearedIn(ch) === UNLOCK_AT && ROUTES[ch] ? ' 일지에 순회 길도 나왔습니다.' : '');
+  $('rbody').textContent = (i + 1) + '번 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단' + (livesOn() ? ', 항의 편지 ' + mistakes + '통' : '') + '.' + (chapterEnd ? ' ' + Math.ceil((i + 1) / CHAPTER_SIZE) + '장을 덮습니다.' : '') + (households() > homesBefore ? ' 관리 고객이 ' + households() + '댁으로 늘었습니다.' : '') + (opened ? (routeDue(ch) ? ' 이 장의 순회 길이 나왔습니다. 길을 잡으면 다음 장 일지가 열립니다.' : ' 다음 장 일지를 펼칠 수 있습니다.') : '');
   var lastOfChapter = (i + 1) % CHAPTER_SIZE === 0;
   $('rps').hidden = !lastOfChapter;
   if (lastOfChapter) $('rps').textContent = POSTSCRIPTS[(Math.ceil((i + 1) / CHAPTER_SIZE) - 1) % POSTSCRIPTS.length][1] + ' (리나)';
   $('next').hidden = last || nextLocked;
-  setTimeout(function () { $('reportVeil').classList.add('on'); (last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+  // 순회 길이 열렸는데 아직 안 잡았으면, 열린 그 판과 장의 끝에서 바로 들어가는 단추를 낸다
+  var askRoute = routeOpen(ch) && routeDue(ch) && ((firstTime && clearedIn(ch) === UNLOCK_AT) || nextLocked);
+  $('toRoute').hidden = !askRoute; $('toRoute').dataset.c = ch;
+  setTimeout(function () { $('reportVeil').classList.add('on'); (askRoute ? $('toRoute') : last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 
@@ -1723,7 +1731,7 @@ function rWin() {
   var g = $('rgrid'); R.path.forEach(function (i, k) { g.querySelector('.rc[data-i="' + i + '"]').style.setProperty('--d', (k * 0.03) + 's'); }); g.classList.add('won');
   rsay('골목 ' + R.N + '곳, 하나도 안 빼고 다 돌았어요!');
   petals(); duck(true); setTimeout(function () { play('clear'); }, 150);
-  $('rrbody').textContent = (R.c + 1) + '장 순회 길을 잡았습니다. 댁 ' + R.lastNum + '곳을 차례대로 들르고, 골목 ' + R.N + '곳을 빠짐없이 지났습니다. 왔던 길은 한 번도 다시 밟지 않았습니다.';
+  $('rrbody').textContent = (R.c + 1) + '장 순회 길을 잡았습니다. 댁 ' + R.lastNum + '곳을 차례대로 들르고, 골목 ' + R.N + '곳을 빠짐없이 지났습니다. 왔던 길은 한 번도 다시 밟지 않았습니다.' + (first && (R.c + 1) * CHAPTER_SIZE < PUZZLES.length && unlocked(R.c + 1) && clearedIn(R.c + 1) === 0 ? ' 다음 장 일지를 펼칠 수 있습니다.' : '');
   var bh = ''; for (var b = 0; b < 3; b++) bh += '<i class="got" style="--bd:' + (1.15 + b * 0.28) + 's">' + BELL_SVG + '</i>';
   $('rrbells').innerHTML = bh;
   setTimeout(function () {
@@ -1733,6 +1741,7 @@ function rWin() {
     for (var q = 0; q < 3; q++) setTimeout(function () { if ($('routeVeil').classList.contains('on')) play('place'); }, 1150 + q * 280);
   }, R.N * 30 + 900);
 }
+$('toRoute').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); routeStart(Number(this.dataset.c)); });
 $('rrback').addEventListener('click', function () { duck(false); $('routeVeil').classList.remove('on'); go('chapters'); });
 function rTutoShow() {
   var R = route, band = $('rtuto');
