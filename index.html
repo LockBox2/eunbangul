@@ -140,6 +140,11 @@ button:disabled { opacity: .35; cursor: default; }
 @keyframes pop { 0% { transform: scale(.3); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
 .cell.bad .piece { filter: drop-shadow(0 0 3px var(--ember)) drop-shadow(0 0 1px var(--ember)) saturate(.75); }
 .cell.bad { outline: 3px solid var(--ember); outline-offset: -3px; }
+.petal { position: fixed; top: -30px; width: 22px; height: 22px; pointer-events: none; z-index: 40; opacity: 0; animation: petalfall var(--t, 2.2s) ease-in var(--d, 0s) both; }
+.petal svg { width: 100%; height: 100%; display: block; animation: petalsway 1.1s ease-in-out infinite alternate; }
+@keyframes petalfall { 0% { transform: translateY(0) rotate(0); opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(var(--fall, 80vh)) rotate(var(--rot, 160deg)); opacity: 0; } }
+@keyframes petalsway { from { transform: translateX(-9px); } to { transform: translateX(9px); } }
+@media (prefers-reduced-motion: reduce) { .petal { display: none; } }
 .build { margin: 4px 0 8px; font-size: .78em; opacity: .6; text-align: center; }
 .replay { margin: 0; }
 .replay button { min-height: 36px; padding: 4px 12px; font-size: .84em; box-shadow: none; background: transparent; border-color: rgba(255,250,240,.35); }
@@ -581,7 +586,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
-var BUILD = '11월 20일 14:14';
+var BUILD = '11월 20일 14:16';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1106,8 +1111,24 @@ function wrong(r, c) {
     setTimeout(function () { $('overVeil').classList.add('on'); (extraUsed ? $('overRetry') : $('overMore')).focus(); }, 700);
   }
 }
+// 다 풀면 은방울꽃이 몇 송이 흩날린다
+function petals() {
+  var b = boardEl.getBoundingClientRect();
+  for (var k = 0; k < 16; k++) {
+    var p = document.createElement('span'); p.className = 'petal'; p.setAttribute('aria-hidden', 'true');
+    p.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3c-4.5 1.5-7 5.5-7 10 0 1.2 1 2 2 1.4.9 1.5 2.3 1.5 3.2.2.9 1.3 2.7 1.3 3.6 0 .9 1.3 2.3 1.3 3.2-.2 1 .6 2-.2 2-1.4 0-4.500-2.500-8.500-7-10z" fill="#fffdf6" stroke="#b9c3a4" stroke-width="1"/><path d="M12 3c.6-1.300 1.800-2 3-2" fill="none" stroke="#7da35c" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    p.style.left = (b.left + Math.random() * b.width - 11) + 'px';
+    p.style.setProperty('--d', (Math.random() * 0.9).toFixed(2) + 's');
+    p.style.setProperty('--t', (1.8 + Math.random() * 1.2).toFixed(2) + 's');
+    p.style.setProperty('--fall', Math.round(b.bottom + 40 + Math.random() * 60) + 'px');
+    p.style.setProperty('--rot', Math.round(-200 + Math.random() * 400) + 'deg');
+    var sz = 16 + Math.round(Math.random() * 12); p.style.width = sz + 'px'; p.style.height = sz + 'px';
+    document.body.appendChild(p);
+    (function (el) { setTimeout(function () { el.remove(); }, 4200); })(p);
+  }
+}
 function finish() {
-  tutoEnd();
+  tutoEnd(); petals();
   done = true; clearTimeout(idleTimer);
   var i = save.stage, before = chaptersDone(), homesBefore = households(), firstTime = !isCleared(i), memo = '';
   if (firstTime && (i + 1) % CHAPTER_SIZE !== 0) {
