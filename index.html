@@ -107,6 +107,8 @@ button:disabled { opacity: .35; cursor: default; }
 .mail .env { display: flex; gap: 4px; }
 .mail .env svg { color: var(--line); }
 .mail .env svg.got { color: var(--ember); animation: pop .25s ease-out; }
+/* 댁 이름표는 판을 키우려고 놀이 화면에서 뺐다 (대사에 나오는 댁은 칸이 반짝여 알려 준다) */
+#play .houses { display: none; }
 .board-wrap { display: flex; justify-content: center; overflow: hidden; padding: 4px 6px 22px; margin: -4px -6px -14px; }
 .donkey { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; background: center bottom / contain no-repeat; filter: drop-shadow(0 3px 2px rgba(10,14,28,.35)); }
 #hint { display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -640,7 +642,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 19:23';
+var BUILD = '11월 20일 19:33';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1272,23 +1274,29 @@ function whyNot(r, c) {
   for (var k = 0; k < P.carts.length; k++) { var kt = P.carts[k]; if (Math.abs(kt.r - r) <= 1 && Math.abs(kt.c - c) <= 1 && cartCount(kt) + 1 > kt.k) return { kind: 'whyCart', cells: [[kt.r, kt.c]] }; }
   return null;
 }
+// 대사에 나온 댁이 어느 색인지, 그 댁 칸을 잠깐 반짝여 알려 준다 (이름표를 뺀 대신)
+function blinkHouse(g) {
+  for (var r = 0; r < P.n; r++) for (var c = 0; c < P.n; c++) if (P.reg[r][c] === g) (function (w) {
+    w.classList.remove('why'); void w.offsetWidth; w.classList.add('why'); setTimeout(function () { w.classList.remove('why'); }, 2000);
+  })(cellEl(r, c));
+}
 function wrong(r, c) {
   mistakes++; moves++;
   state[r][c] = 1; render(); renderMail(); armIdle();
   var el = cellEl(r, c); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
   play('clash');
-  var other = null;
+  var other = null, otherReg = null;
   for (var r2 = 0; r2 < P.n; r2++) {
     var c2 = P.sol[r2];
     if (P.reg[r2][c2] === P.reg[r][c]) continue;
-    if (r2 === r || c2 === c || (Math.abs(r2 - r) <= 1 && Math.abs(c2 - c) <= 1)) { other = houseOf[P.reg[r2][c2]].name; break; }
+    if (r2 === r || c2 === c || (Math.abs(r2 - r) <= 1 && Math.abs(c2 - c) <= 1)) { other = houseOf[P.reg[r2][c2]].name; otherReg = P.reg[r2][c2]; break; }
   }
   var byCart = P.carts.some(function (k) { return Math.abs(k.r - r) <= 1 && Math.abs(k.c - c) <= 1; });
   var why = whyNot(r, c);
   if (why) {
     say(why.kind, { h: why.h || '' });
     why.cells.forEach(function (q) { var w = cellEl(q[0], q[1]); w.classList.remove('why'); void w.offsetWidth; w.classList.add('why'); setTimeout(function () { w.classList.remove('why'); }, 2000); });
-  } else if (other) say('wrongOther', { h: other }); else if (byCart) say('wrongCart'); else say('wrongHouse', { h: houseOf[P.reg[r][c]].name });
+  } else if (other) { say('wrongOther', { h: other }); blinkHouse(otherReg); } else if (byCart) say('wrongCart'); else { say('wrongHouse', { h: houseOf[P.reg[r][c]].name }); blinkHouse(P.reg[r][c]); }
   if (mistakes >= MAX_MAIL) {
     done = true; clearTimeout(idleTimer);
     $('overMore').hidden = extraUsed; $('overNote').hidden = extraUsed;
