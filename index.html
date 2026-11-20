@@ -278,6 +278,21 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .sheet p { margin: 0; }
 .sheet .doc { font-family: var(--display); font-size: 1.06em; }
 .sheet .sign { text-align: right; font-family: var(--display); }
+.sheet .bells { display: flex; justify-content: center; gap: 10px; margin: 2px 0 4px; }
+.sheet .bells i { width: 34px; height: 34px; display: block; }
+.sheet .bells svg { width: 100%; height: 100%; fill: none; stroke: #b9ad92; stroke-width: 1.300; }
+.sheet .bells i.got svg { fill: #dfe4f0; stroke: #2a3266; stroke-width: 1.400; filter: drop-shadow(0 1px 0 #fff); }
+.sheet .bells i.got { opacity: 0; transform: scale(.3) rotate(-25deg); }
+.veil.on .sheet .bells i.got { animation: bellin .38s cubic-bezier(.2,1.500,.4,1) var(--bd, 1s) forwards; }
+@keyframes bellin { to { opacity: 1; transform: none; } }
+.sheet .rtime { text-align: center; font-size: .9em; opacity: .8; margin: 0 0 10px; }
+.stages button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.100; }
+.stages button.cleared { min-height: 58px; }
+.stages .bl { display: flex; gap: 3px; }
+.stages .bl i { width: 7px; height: 7px; border-radius: 50%; border: 1.500px solid #5a648f; box-sizing: border-box; }
+.stages .bl i.on { background: #2a3266; border-color: #2a3266; }
+.stages button small { font-size: .7em; opacity: .85; font-weight: 400; }
+@media (prefers-reduced-motion: reduce) { .veil.on .sheet .bells i.got { animation: none; opacity: 1; transform: none; } }
 .sheet .memo { font-size: .94em; padding: 8px 10px; border-left: 3px solid #b9ad92; background: rgba(185,173,146,.18); border-radius: 0 6px 6px 0; }
 .sheet .memo b { display: block; font-size: .82em; color: #6b6456; font-weight: normal; margin-bottom: 2px; }
 .sheet .ps { font-size: .94em; border-top: 1px dashed #b9b09c; padding-top: 10px; }
@@ -391,7 +406,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="bar">
     <button type="button" class="back" data-go="home" aria-label="시작 화면으로">←</button>
     <h2>관리일지</h2>
-    <div class="count">관리 고객 <b class="num" id="chapCount">91</b>댁</div>
+    <div class="count">관리 고객 <b class="num" id="chapCount">91</b>댁 · 은방울 <b class="num" id="chapBells">0</b></div>
   </div>
   <div class="chapters" id="chapterList"></div>
 </main>
@@ -436,6 +451,8 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <h2 id="rt">[영지 지점 보고]</h2>
     <p class="doc" id="rbody"></p>
     <p class="sign">안나<img class="stamp" src="img/stamp.webp" alt="" width="240" height="240"></p>
+    <p class="bells" id="rbells" role="img"></p>
+    <p class="rtime num" id="rtime"></p>
     <p class="memo" id="rmemo"></p>
     <p class="ps" id="rps"></p>
     <button type="button" id="next">다음 순회표</button>
@@ -642,13 +659,23 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 22:52';
+var BUILD = '11월 21일 06:32';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
 var P = null, state = [], undoStack = [], moves = 0, hints = 0, done = false, houseOf = [], idleTimer = null;
 var mistakes = 0, extraUsed = false, lastTap = null, MAX_MAIL = 3, busy = false;
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true };
+// 은방울 점수와 걸린 시간. slips·hintPen은 연습으로 시킨 동작을 빼고 센다
+var slips = 0, hintPen = 0, tStart = null, tAcc = 0;
+function guided() { return !!(tuto && tuto.steps[tuto.i].expect !== 'free'); }
+function elapsed() { return Math.round((tAcc + (tStart ? Date.now() - tStart : 0)) / 1000); }
+function clock(sec) { var m = Math.floor(sec / 60), x = sec % 60; return (m ? m + '분 ' : '') + x + '초'; }
+function clockShort(sec) { var m = Math.floor(sec / 60), x = sec % 60; return m + ':' + (x < 10 ? '0' : '') + x; }
+function bellsOf(i) { return isCleared(i) ? ((save.bells && save.bells[i]) || 1) : 0; }
+function bellsIn(c) { var t = 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE && i < PUZZLES.length; i++) t += bellsOf(i); return t; }
+function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); return t; }
+var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {} };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -709,7 +736,10 @@ function music() {
   } catch (e) {}
 }
 document.addEventListener('pointerdown', function () { if (!bgm || bgm.paused) music(); });
-document.addEventListener('visibilitychange', function () { if (document.hidden) { if (bgm) bgm.pause(); } else music(); });
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { if (bgm) bgm.pause(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
+  else { music(); if (!done && $('play').classList.contains('on')) tStart = Date.now(); }
+});
 function play(name) {
   if (!save.sound || !SOUNDS[name]) return;
   try { var a = SOUNDS[name].cloneNode(); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -730,7 +760,7 @@ function renderHome() {
   $('resume').textContent = save.cleared.length === 0 ? '순회표 짜기' : save.cleared.length >= PUZZLES.length ? '다시 둘러보기' : (n + 1) + '번 순회표 이어서 짜기';
 }
 function renderChapters() {
-  $('chapCount').textContent = households();
+  $('chapCount').textContent = households(); $('chapBells').textContent = bellsAll();
   var html = '', here = nextOpen();
   for (var c = 0; c * CHAPTER_SIZE < PUZZLES.length; c++) {
     var first = c * CHAPTER_SIZE, sec = PUZZLES[first][0], n = PUZZLES[first][1], got = 0, btns = '';
@@ -739,10 +769,10 @@ function renderChapters() {
     var open = unlocked(c);
     for (var i = first; i < first + CHAPTER_SIZE; i++) {
       var cl = isCleared(i); if (cl) got++;
-      btns += '<button type="button" class="num' + (cl ? ' cleared' : '') + (i === here ? ' here' : '') + '" data-stage="' + i + '"' + (open ? '' : ' disabled') + ' aria-label="' + (i + 1) + '번 순회표' + (cl ? ', 완료' : '') + (open ? '' : ', 잠김') + '">' + (i + 1) + '</button>';
+      btns += '<button type="button" class="num' + (cl ? ' cleared' : '') + (i === here ? ' here' : '') + '" data-stage="' + i + '"' + (open ? '' : ' disabled') + ' aria-label="' + (i + 1) + '번 순회표' + (cl ? ', 완료' : '') + (open ? '' : ', 잠김') + '">' + (i + 1) + (cl ? '<span class="bl" aria-label="은방울 ' + bellsOf(i) + '개">' + '<i class="on"></i>'.repeat(bellsOf(i)) + '<i></i>'.repeat(3 - bellsOf(i)) + '</span>' + (save.best && save.best[i] ? '<small>' + clockShort(save.best[i]) + '</small>' : '') : '') + '</button>';
     }
     var need = open ? 0 : UNLOCK_AT - clearedIn(c - 1);
-    html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + '"><header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">앞 장을 ' + need + '판 더 풀면 열립니다.</p>') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote">' + POSTSCRIPTS[c][1] + '</p>' : '') + '<div class="stages">' + btns + '</div></section>';
+    html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + '"><header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + (got ? ' · 은방울 ' + bellsIn(c) + ' / ' + CHAPTER_SIZE * 3 : '') + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">앞 장을 ' + need + '판 더 풀면 열립니다.</p>') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote">' + POSTSCRIPTS[c][1] + '</p>' : '') + '<div class="stages">' + btns + '</div></section>';
   }
   $('chapterList').innerHTML = html;
 }
@@ -1034,7 +1064,7 @@ function startStage(i) {
   var m = 0; reg.forEach(function (row) { row.forEach(function (g) { if (g + 1 > m) m = g + 1; }); });
   var big = Z[6] ? Z[6].charCodeAt(0) - 65 : -1;
   P = { n: n, m: m, reg: reg, sol: sol, carts: carts, big: big };
-  state = []; undoStack = []; moves = 0; hints = 0; done = false; busy = false; mistakes = 0; extraUsed = false; lastTap = null;
+  state = []; undoStack = []; moves = 0; hints = 0; done = false; busy = false; mistakes = 0; extraUsed = false; lastTap = null; slips = 0; hintPen = 0; tAcc = 0; tStart = Date.now();
   for (r = 0; r < n; r++) state.push(new Array(n).fill(0));
   // 관리원 얼굴 아홉: 줄마다 한 사람. 같은 판은 언제 열어도 같은 사람이 같은 줄에 선다
   var s2 = (i + 1) * 104729 + 7; P.staff = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -1405,7 +1435,7 @@ function blinkHouse(g) {
   })(cellEl(r, c));
 }
 function wrong(r, c) {
-  mistakes++; moves++;
+  mistakes++; moves++; if (!guided()) slips++;
   state[r][c] = 1; render(); renderMail(); armIdle();
   var el = cellEl(r, c); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
   play('clash');
@@ -1456,6 +1486,16 @@ function finish() {
   $('rmemo').hidden = !memo;
   if (memo) { $('rmemo').innerHTML = '<b>리나의 메모</b>'; $('rmemo').appendChild(document.createTextNode(memo)); }
   if (firstTime) save.cleared.push(i);
+  // 은방울: 틀림도 힌트도 없으면 셋, 하나면 둘, 그 밖은 하나. 가장 좋았던 기록을 남긴다
+  if (tStart) { tAcc += Date.now() - tStart; tStart = null; }
+  var took = elapsed(), pen = slips + hintPen, got = pen === 0 ? 3 : pen === 1 ? 2 : 1;
+  if (!save.bells) save.bells = {}; if (!save.best) save.best = {};
+  var oldBest = save.best[i], newBest = !oldBest || took < oldBest;
+  if (got > (save.bells[i] || 0)) save.bells[i] = got;
+  if (newBest) save.best[i] = took;
+  var bh = ''; for (var bk = 0; bk < 3; bk++) bh += '<i' + (bk < got ? ' class="got" style="--bd:' + (1.15 + bk * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
+  $('rbells').innerHTML = bh; $('rbells').setAttribute('aria-label', '은방울 ' + got + '개');
+  $('rtime').textContent = '걸린 시간 ' + clock(took) + (oldBest ? (newBest ? ' · 새 기록 (전에는 ' + clock(oldBest) + ')' : ' · 가장 빠른 기록 ' + clock(oldBest)) : '');
   store();
   var chapterEnd = chaptersDone() > before, last = i === PUZZLES.length - 1;
   var ch = chapterOf(i), opened = !last && clearedIn(ch) === UNLOCK_AT && !openAll() && (ch + 1) * CHAPTER_SIZE < PUZZLES.length;
@@ -1469,7 +1509,8 @@ function finish() {
   $('rps').hidden = !lastOfChapter;
   if (lastOfChapter) $('rps').textContent = POSTSCRIPTS[(Math.ceil((i + 1) / CHAPTER_SIZE) - 1) % POSTSCRIPTS.length][1] + ' (리나)';
   $('next').hidden = last || nextLocked;
-  setTimeout(function () { $('reportVeil').classList.add('on'); (last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760); }, P.n * 70 + 700);
+  setTimeout(function () { $('reportVeil').classList.add('on'); (last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 
 // 누르기와 끌기
@@ -1571,7 +1612,7 @@ function doHint() {
   if (!rows.length) return;
   r = pick(rows); c = P.sol[r]; busy = true; armIdle();
   donkeyRun(r, c, 'base', function () {
-    snapshot(); state[r][c] = 2; hints++;
+    snapshot(); state[r][c] = 2; hints++; if (!guided()) hintPen++;
     render(); say('hint', { h: houseOf[P.reg[r][c]].name }); play('hint');
   }, function () {
     busy = false; tutoCheck();
