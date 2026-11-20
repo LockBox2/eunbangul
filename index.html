@@ -500,7 +500,8 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="sheet">
     <h2 id="set-t">설정</h2>
     <label class="toggle" for="optReact">리나의 한마디 보기 <input type="checkbox" id="optReact"></label>
-    <label class="toggle" for="optSound">방울 소리 <input type="checkbox" id="optSound"></label>
+    <label class="toggle" for="optSound">효과음 <input type="checkbox" id="optSound"></label>
+    <label class="toggle" for="optMusic">배경 음악 <input type="checkbox" id="optMusic"></label>
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
     <label class="toggle" for="optEasy">편한 순회 (항의 편지 없음) <input type="checkbox" id="optEasy"></label>
     <label class="toggle" for="optOpen">모든 장 열어 두기 (시험용) <input type="checkbox" id="optOpen"></label>
@@ -636,13 +637,13 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 15:43';
+var BUILD = '11월 20일 15:58';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
 var P = null, state = [], undoStack = [], moves = 0, hints = 0, done = false, houseOf = [], idleTimer = null;
 var mistakes = 0, extraUsed = false, lastTap = null, MAX_MAIL = 3, busy = false;
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0 };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -678,7 +679,18 @@ function nextOpen() {
 
 // 소리: 손종 녹음을 네 토막으로 잘라 쓴다
 var SOUNDS = {};
-['place', 'clash', 'hint', 'clear'].forEach(function (n) { try { var a = new Audio('snd/' + n + '.mp3'); a.preload = 'auto'; SOUNDS[n] = a; } catch (e) {} });
+['place', 'clash', 'hint', 'clear', 'bell'].forEach(function (n) { try { var a = new Audio('snd/' + n + '.mp3'); a.preload = 'auto'; SOUNDS[n] = a; } catch (e) {} });
+// 배경 음악: 처음 화면을 누른 뒤에 시작하고(브라우저 규칙), 화면을 벗어나면 멈춘다
+var bgm = null;
+function music() {
+  if (!save.music) { if (bgm) bgm.pause(); return; }
+  try {
+    if (!bgm) { bgm = new Audio('snd/bgm.mp3'); bgm.loop = true; bgm.volume = 0.22; bgm.preload = 'auto'; }
+    if (bgm.paused && !document.hidden) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); }
+  } catch (e) {}
+}
+document.addEventListener('pointerdown', function () { if (!bgm || bgm.paused) music(); });
+document.addEventListener('visibilitychange', function () { if (document.hidden) { if (bgm) bgm.pause(); } else music(); });
 function play(name) {
   if (!save.sound || !SOUNDS[name]) return;
   try { var a = SOUNDS[name].cloneNode(); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
@@ -740,7 +752,7 @@ var CUTS = {
       ['브란트 부인', '그럼 네 허리도 좀 쉬겠구나.'],
       ['하녀', '그게 제일 좋아요, 마님!'] ] },
     { img: 'img/op3.webp', alt: '남색 제복을 입은 관리원을 반갑게 맞는 하녀', lines: [
-      ['', '딸랑.', 'hint'],
+      ['', '딸랑.', 'bell'],
       ['관리원', '하르텐 상회에서 왔습니다. 이번 달 정기 점검입니다!'],
       ['하녀', '어서 오세요. 기다리고 있었어요.'],
       ['관리원', '돌판부터 살펴보겠습니다.'],
@@ -758,7 +770,7 @@ var CUTS = {
       ['안나', '관리 고객 댁 수는 줄지 않게 하겠습니다.'],
       ['하르텐', '믿고 맡길게.'],
       ['오토', '짐을 너무 실었나 봅니다.'],
-      ['', '딸랑.', 'hint'] ] },
+      ['', '딸랑.', 'bell'] ] },
     { img: 'img/op6.webp', alt: '지점장실에서 순회표를 든 리나와 장부를 펼친 안나', lines: [
       ['', '하르텐 영지에 남은 관리 고객, 아흔한 댁.'],
       ['리나', '지점장님, 이번 달 순회 명단입니다.'],
@@ -1382,10 +1394,11 @@ $('cut').addEventListener('click', function (e) { if (e.target.closest('#cutSkip
 document.addEventListener('keydown', function (e) { if (cutState && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); cutStepOn(false); } });
 $('toChapters').addEventListener('click', function () { $('reportVeil').classList.remove('on'); go('chapters'); });
 $('openSettings').addEventListener('click', function () {
-  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optBig').checked = save.big; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
+  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '판: ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
+$('optMusic').addEventListener('change', function () { save.music = this.checked; store(); music(); });
 $('optSound').addEventListener('change', function () { save.sound = this.checked; store(); if (save.sound) play('place'); });
 $('optBig').addEventListener('change', function () { save.big = this.checked; store(); document.body.classList.toggle('big', save.big); });
 $('optEasy').addEventListener('change', function () { save.easy = this.checked; store(); });
