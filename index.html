@@ -95,6 +95,7 @@ button:disabled { opacity: .35; cursor: default; }
 .stage b { display: block; color: var(--silver); font-family: var(--display); font-size: 1.2em; }
 .partner { display: flex; align-items: center; gap: 12px; min-height: 84px; }
 .partner.off { display: none; }
+.partner.squeezed { display: none; }
 .face { flex: none; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; background: var(--curtain-2); border: 2px solid var(--thread); }
 .face img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bubble { flex: 1; background: var(--paper); color: var(--ink); padding: 10px 14px; border-radius: 4px 14px 14px 14px; min-height: 44px; display: flex; align-items: center; }
@@ -927,6 +928,21 @@ function renderMail() {
   for (var i = 0; i < es.length; i++) es[i].classList.toggle('got', i < mistakes);
   $('envs').setAttribute('aria-label', '항의 편지 ' + mistakes + '통');
 }
+// 순회표 화면이 한 화면에 다 들어오게 판 크기를 줄인다 (아래로 밀어 내릴 일이 없게)
+function fitBoard() {
+  if (!$('play').classList.contains('on')) return;
+  var partner = $('partner'), guided = tuto && tuto.steps[tuto.i].expect !== 'free';
+  partner.classList.remove('squeezed'); boardEl.style.width = '';
+  var fit = function () {
+    boardEl.style.width = '';
+    var over = document.documentElement.scrollHeight - window.innerHeight;
+    if (over > 0) { var w = boardEl.getBoundingClientRect().width; boardEl.style.width = Math.max(200, Math.floor(w - over)) + 'px'; }
+    return boardEl.getBoundingClientRect().width;
+  };
+  // 연습 중에 칸이 너무 작아지면 리나 자리를 잠깐 접는다 (안내 띠가 대신 말한다)
+  if (fit() < P.n * 42 && guided) { partner.classList.add('squeezed'); fit(); }
+}
+window.addEventListener('resize', fitBoard);
 // 연습: 첫 세 판에서 한 동작씩 시킨다. 시킨 동작만 받고, 하면 다음으로 넘어간다
 var tuto = null;
 function tutoPlan(i) {
@@ -996,7 +1012,7 @@ function tutoStart(i) {
   tutoClear(); tuto = null;
   var first = i <= 2 || (i % CHAPTER_SIZE === 0 && !save.ruleSeen[ruleKey()]);
   var plan = first && !save.tutoSeen[i] && !isCleared(i) ? tutoPlan(i) : null;
-  if (!plan) { $('tuto').hidden = true; return; }
+  if (!plan) { $('tuto').hidden = true; fitBoard(); return; }
   tuto = { stage: i, steps: plan, i: 0, undone: false, hinted: false };
   $('tuto').hidden = false; tutoShow();
 }
@@ -1010,9 +1026,10 @@ function tutoShow() {
   var s = tuto.steps[tuto.i], last = s.expect === 'free';
   $('tutoText').textContent = s.text;
   $('tutoStep').textContent = '연습 ' + (tuto.i + 1) + ' / ' + tuto.steps.length;
+  fitBoard();
   $('tutoSkip').hidden = last; $('tutoNext').hidden = s.expect !== 'read'; boardEl.classList.toggle('reading', s.expect === 'read');
-  if (last) { save.tutoSeen[tuto.stage] = 1; store(); renderMail(); return; }
-  $('mail').hidden = true;
+  if (last) { save.tutoSeen[tuto.stage] = 1; store(); renderMail(); fitBoard(); return; }
+  $('mail').hidden = true; fitBoard();
   if (s.cells) {
     boardEl.classList.add('tutoOn');
     s.cells.concat(s.show || []).forEach(function (q) { cellEl(q[0], q[1]).classList.add('lit'); });
@@ -1046,7 +1063,7 @@ function tutoCheck() {
   var s = tuto.steps[tuto.i];
   if (s.expect !== 'free' && s.expect !== 'read' && s.ok()) { tuto.i++; play('place'); tutoShow(); }
 }
-function tutoEnd() { if (tuto) { save.tutoSeen[tuto.stage] = 1; store(); } tuto = null; tutoClear(); $('tuto').hidden = true; if (!done) renderMail(); }
+function tutoEnd() { if (tuto) { save.tutoSeen[tuto.stage] = 1; store(); } tuto = null; tutoClear(); $('tuto').hidden = true; if (!done) { renderMail(); fitBoard(); } }
 
 // 한 번 누르기: 빈칸은 못 감, 못 감은 빈칸, 관리원은 거두기. 빠르게 두 번이면 보내기.
 function tap(r, c) {
