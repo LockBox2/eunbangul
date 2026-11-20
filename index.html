@@ -637,7 +637,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 18:13';
+var BUILD = '11월 20일 18:20';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1011,16 +1011,25 @@ function renderMail() {
 // 순회표 화면이 한 화면에 다 들어오게 판 크기를 줄인다 (아래로 밀어 내릴 일이 없게)
 function fitBoard() {
   if (!$('play').classList.contains('on')) return;
-  var partner = $('partner');
+  var partner = $('partner'), band = $('tuto'), mail = $('mail'), mailWas = mail.hidden;
   // 연습 띠가 떠 있는 동안에는 리나 자리를 접는다 (안내 띠가 대신 말한다)
   partner.classList.toggle('squeezed', !!tuto); boardEl.style.width = '';
-  var fit = function () {
-    boardEl.style.width = '';
-    var over = document.documentElement.scrollHeight - window.innerHeight;
-    if (over > 0) { var w = boardEl.getBoundingClientRect().width; boardEl.style.width = Math.max(200, Math.floor(w - over)) + 'px'; }
-    return boardEl.getBoundingClientRect().width;
-  };
-  fit();
+  if (tuto && !band.hidden) {
+    // 연습 내내 판 크기가 변하지 않게, 가장 긴 안내문 높이로 띠를 잡아 둔다
+    var key = window.innerWidth + 'x' + window.innerHeight;
+    if (tuto.fitKey !== key) {
+      var cur = $('tutoText').textContent, skipWas = $('tutoSkip').hidden, nextWas = $('tutoNext').hidden, h = 0;
+      band.style.minHeight = ''; $('tutoSkip').hidden = false; $('tutoNext').hidden = false;
+      tuto.steps.forEach(function (st) { $('tutoText').textContent = st.text; h = Math.max(h, band.offsetHeight); });
+      $('tutoText').textContent = cur; $('tutoSkip').hidden = skipWas; $('tutoNext').hidden = nextWas;
+      tuto.bandH = h; tuto.fitKey = key;
+    }
+    band.style.minHeight = tuto.bandH + 'px';
+    if (livesOn()) mail.hidden = false;
+  } else band.style.minHeight = '';
+  var over = document.documentElement.scrollHeight - window.innerHeight;
+  if (over > 0) { var w = boardEl.getBoundingClientRect().width; boardEl.style.width = Math.max(200, Math.floor(w - over)) + 'px'; }
+  mail.hidden = mailWas;
 }
 window.addEventListener('resize', fitBoard);
 // 연습: 첫 세 판에서 한 동작씩 시킨다. 시킨 동작만 받고, 하면 다음으로 넘어간다
