@@ -168,6 +168,14 @@ body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30
 .veil.on .sheet .stamp { animation: stampin .32s .55s cubic-bezier(.3, 1.5, .5, 1) both; }
 @keyframes stampin { from { opacity: 0; transform: scale(1.9) rotate(-22deg); } to { opacity: .82; transform: scale(1) rotate(-9deg); } }
 @media (prefers-reduced-motion: reduce) { .veil.on .sheet .stamp { animation: none; opacity: .82; transform: rotate(-9deg); } }
+.cell .hold { position: absolute; inset: 0; pointer-events: none; z-index: 4; opacity: 0; animation: holdshow .01s .09s forwards; }
+.cell .hold i { position: absolute; inset: 2% 2% 3%; background: center bottom / contain no-repeat; opacity: 0; animation: holdghost .36s .09s ease-out forwards; }
+.cell .hold svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cell .hold rect { fill: none; stroke: #1a2038; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: holdring .36s .09s linear forwards; }
+@keyframes holdshow { to { opacity: 1; } }
+@keyframes holdghost { from { opacity: 0; transform: translateY(6%) scale(.9); } to { opacity: .6; transform: none; } }
+@keyframes holdring { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .cell .hold i { animation: none; opacity: .5; } .cell .hold rect { animation: none; stroke-dashoffset: 0; } }
 .build { margin: 4px 0 8px; font-size: .78em; opacity: .6; text-align: center; }
 .replay { margin: 0; }
 .replay button { min-height: 36px; padding: 4px 12px; font-size: .84em; box-shadow: none; background: transparent; border-color: rgba(255,250,240,.35); }
@@ -466,7 +474,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
       <li id="ruleBig" hidden>숫자 2가 붙은 큰 댁에는 관리원을 두 명 보냅니다. 가로줄과 세로줄은 그대로 한 명씩입니다</li>
       <li id="ruleCart" hidden>수레 칸 둘레 여덟 칸에는 수레에 적힌 숫자만큼만 보냅니다. 수레 칸에는 못 섭니다</li>
     </ul>
-    <p>칸을 한 번 누르면 못 가는 칸입니다. 관리원은 빠르게 두 번 누르거나 길게 눌러서 보냅니다. 끌면 못 가는 칸을 이어서 칠합니다.</p>
+    <p>칸을 한 번 누르면 못 가는 칸입니다. 관리원은 빠르게 두 번 누르거나 길게 눌러서 보냅니다. 손가락으로 밀면 못 가는 칸을 이어서 칠하고, X에서 시작해 밀면 X를 이어서 지웁니다.</p>
     <p>2장부터는 맞지 않는 칸에 보내면 그 댁에서 항의 편지가 옵니다. 세 통이 쌓이면 순회표를 다시 짭니다.</p>
     <button type="button" data-close="rulesVeil">알겠습니다</button>
   </div>
@@ -609,7 +617,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
-var BUILD = '11월 20일 14:30';
+var BUILD = '11월 20일 14:40';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1076,7 +1084,7 @@ function tutoShow() {
   if (s.button) { document.querySelector('.actions').classList.add('tutoOn'); $(s.button).classList.add('lit'); }
 }
 // 지금 단계에서 이 동작을 받아도 되는지
-function tutoOk(kind, r, c) {
+function tutoOk(kind, r, c, quiet) {
   if (!tuto) return true;
   var s = tuto.steps[tuto.i]; if (s.expect === 'free') return true;
   var inCells = !!s.cells && s.cells.some(function (q) { return q[0] === r && q[1] === c; }), ok = false;
@@ -1084,7 +1092,7 @@ function tutoOk(kind, r, c) {
   else if (kind === 'place') ok = inCells && s.expect === 'place';
   else if (kind === 'paint') ok = inCells && (s.expect === 'paint' || s.expect === 'x');
   else ok = s.expect === kind;
-  if (!ok && kind !== 'paint') { var t = $('tuto'); t.classList.remove('nudge'); void t.offsetWidth; t.classList.add('nudge'); }
+  if (!ok && kind !== 'paint' && !quiet) { var t = $('tuto'); t.classList.remove('nudge'); void t.offsetWidth; t.classList.add('nudge'); }
   return ok;
 }
 function tutoCheck() {
@@ -1099,7 +1107,7 @@ function tap(r, c) {
   if (done || busy) return;
   if (cartAt(r, c)) { say('cartCell'); return; }
   if (!tutoOk('tap', r, c)) return;
-  var now = Date.now(), s = state[r][c], quick = lastTap && lastTap.r === r && lastTap.c === c && now - lastTap.t < 380;
+  var now = Date.now(), s = state[r][c], quick = lastTap && lastTap.r === r && lastTap.c === c && now - lastTap.t < 520;
   lastTap = { r: r, c: c, t: now };
   if (s === 1 && quick) { lastTap = null; tryPlace(r, c); return; }
   snapshot(); state[r][c] = s === 0 ? 1 : 0; moves++; afterChange(null, null);
@@ -1184,11 +1192,17 @@ function cellAt(x, y) {
 boardEl.addEventListener('pointerdown', function (e) {
   if (done || busy) return;
   var at = cellAt(e.clientX, e.clientY); if (!at) return;
-  drag = { start: at, painting: false, held: false };
-  drag.timer = setTimeout(function () { if (drag && !drag.painting) { drag.held = true; tryPlace(at[0], at[1]); } }, 450);
+  drag = { start: at, painting: false, held: false, erase: false };
+  drag.timer = setTimeout(function () { if (drag && !drag.painting) { drag.held = true; holdOff(); tryPlace(at[0], at[1]); } }, 450);
+  if (state[at[0]][at[1]] !== 2 && !cartAt(at[0], at[1]) && tutoOk('place', at[0], at[1], true)) {
+    var hd = document.createElement('span'); hd.className = 'hold';
+    hd.innerHTML = '<i style="background-image:url(img/staff-' + P.staff[at[0] % 9] + '.webp)"></i><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="5" y="5" width="90" height="90" rx="16" pathLength="100"/></svg>';
+    cellEl(at[0], at[1]).appendChild(hd);
+  }
   try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}
   e.preventDefault();
 });
+function holdOff() { var q = boardEl.querySelectorAll('.hold'); for (var k = 0; k < q.length; k++) q[k].remove(); }
 boardEl.addEventListener('pointermove', function (e) {
   if (!drag || done) return;
   var at = cellAt(e.clientX, e.clientY); if (!at) return;
@@ -1196,14 +1210,18 @@ boardEl.addEventListener('pointermove', function (e) {
     if (at[0] === drag.start[0] && at[1] === drag.start[1]) return;
     if (drag.held) return;
     if (!tutoOk('paint', drag.start[0], drag.start[1])) return;
-    clearTimeout(drag.timer); drag.painting = true; snapshot();
-    if (state[drag.start[0]][drag.start[1]] === 0 && !cartAt(drag.start[0], drag.start[1])) state[drag.start[0]][drag.start[1]] = 1;
+    clearTimeout(drag.timer); holdOff(); drag.painting = true; snapshot();
+    // X에서 시작해 밀면 지우기, 빈칸에서 시작하면 칠하기. 연습 중에는 칠하기만 한다
+    drag.erase = state[drag.start[0]][drag.start[1]] === 1 && (!tuto || tuto.steps[tuto.i].expect === 'free');
+    if (drag.erase) state[drag.start[0]][drag.start[1]] = 0;
+    else if (state[drag.start[0]][drag.start[1]] === 0 && !cartAt(drag.start[0], drag.start[1])) state[drag.start[0]][drag.start[1]] = 1;
   }
-  if (state[at[0]][at[1]] === 0 && !cartAt(at[0], at[1]) && tutoOk('paint', at[0], at[1])) { state[at[0]][at[1]] = 1; render(); }
+  if (drag.erase) { if (state[at[0]][at[1]] === 1) { state[at[0]][at[1]] = 0; render(); } }
+  else if (state[at[0]][at[1]] === 0 && !cartAt(at[0], at[1]) && tutoOk('paint', at[0], at[1])) { state[at[0]][at[1]] = 1; render(); }
 });
 function endDrag() {
   if (!drag) return;
-  var d = drag; drag = null; clearTimeout(d.timer);
+  var d = drag; drag = null; clearTimeout(d.timer); holdOff();
   if (d.held) return;
   if (d.painting) { moves++; afterChange(null, null); } else tap(d.start[0], d.start[1]);
 }
@@ -1212,7 +1230,7 @@ boardEl.addEventListener('animationend', function (e) {
   if (e.target.classList.contains('piece')) e.target.classList.add('set');
   if (e.animationName === 'shake') e.target.parentNode.classList.remove('shake');
 });
-boardEl.addEventListener('pointercancel', function () { if (drag) clearTimeout(drag.timer); drag = null; render(); });
+boardEl.addEventListener('pointercancel', function () { if (drag) clearTimeout(drag.timer); drag = null; holdOff(); render(); });
 boardEl.addEventListener('keydown', function (e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   var t = e.target; if (!t.classList.contains('cell')) return;
