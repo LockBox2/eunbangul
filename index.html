@@ -642,7 +642,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 20일 22:48';
+var BUILD = '11월 20일 22:52';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -969,6 +969,20 @@ var CUTS = {
       ['', '안나는 숫자만 적는다. 받는 사람이 좋아하는 것이 숫자니까.'],
       ['', '마지막 줄은 비워 두었다. 내일의 순회표가 맞아야 채울 수 있는 줄이다.'],
       ['안나', '수레도 있고 큰 댁도 있다. 그래도 한 줄에 한 명. 그건 처음부터 그대로다.'],
+      ['', '딸랑.', 'bell'] ] }
+  ] },
+  // 마지막 판의 보고서를 닫으면 나오는 맺는 이야기
+  end: { title: '추신', cuts: [
+    { img: 'img/end.webp', alt: '등불 아래에서 문 쪽을 살피며 편지 끝에 몰래 몇 줄을 적어 넣는 리나', lines: [
+      ['', '순회표의 마지막 칸이 찼다. 보고서의 마지막 줄도 찼다.'],
+      ['', '편지는 내일 아침 수도로 떠난다. 안나가 차를 가지러 간 사이.'],
+      ['리나', '추신. 지점장님은 안 쓰셨지만, 순회표는 한 장도 안 틀렸어요.'],
+      ['리나', '추신 둘. 막시밀리안은 살이 쪘어요. 콘라트는 성질이 그대로고요.'],
+      ['리나', '추신 셋. 신입들이 저를 선배님이라고 불러요. 백작님도 한 번만…… 아니에요.'],
+      ['', '문밖에서 발소리가 났다. 리나는 깃펜을 내려놓고 아무 일도 없었다는 얼굴을 했다.'],
+      ['안나', '……잉크가 덜 말랐구나.'],
+      ['', '안나는 추신을 지우지 않았다. 봉랍을 한 번 더 눌렀을 뿐이다.'],
+      ['', '은방울은 내일도 울린다.'],
       ['', '딸랑.', 'bell'] ] }
   ] }
 };
@@ -1587,12 +1601,13 @@ $('openStory').addEventListener('click', function () {
     if (CUTS[c]) html += '<button type="button" data-story="' + c + '"' + (save.cutSeen[c] ? '' : ' disabled') + '>' + (c + 1) + '장 「' + CUTS[c].title + '」<small>' + (save.cutSeen[c] ? '장을 여는 이야기 · ' + CUTS[c].cuts.length + '컷' : '그 장에 들어가면 열립니다') + '</small></button>';
     if (POSTSCRIPTS[c] && isCleared((c + 1) * CHAPTER_SIZE - 1)) html += '<button type="button" data-ps="' + c + '">' + (c + 1) + '장 추신 「' + POSTSCRIPTS[c][0] + '」<small>리나의 추신</small></button>';
   }
+  if (save.cutSeen.end) html += '<button type="button" data-story="end">맺는 이야기 「' + CUTS.end.title + '」<small>마지막 판 뒤의 이야기 · 1컷</small></button>';
   $('storyList').innerHTML = html || '<p>아직 본 이야기가 없습니다.</p>';
   $('storyVeil').classList.add('on');
 });
 $('storyList').addEventListener('click', function (e) {
   var b = e.target.closest('button[data-story]');
-  if (b) { $('storyVeil').classList.remove('on'); playCut(Number(b.dataset.story), function () { go('home'); }); return; }
+  if (b) { $('storyVeil').classList.remove('on'); playCut(b.dataset.story === 'end' ? 'end' : Number(b.dataset.story), function () { go('home'); }); return; }
   var p = e.target.closest('button[data-ps]');
   if (p) { var small = p.querySelector('small'); small.textContent = small.dataset.open ? '리나의 추신' : POSTSCRIPTS[Number(p.dataset.ps)][1]; small.dataset.open = small.dataset.open ? '' : '1'; }
 });
@@ -1606,10 +1621,15 @@ $('openRules').addEventListener('click', function () { $('rulesVeil').classList.
 $('next').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); openStage(Math.min(save.stage + 1, PUZZLES.length - 1)); });
 $('cut').addEventListener('click', function (e) { if (e.target.closest('#cutSkip')) { cutEnd(); return; } cutStepOn(false); });
 document.addEventListener('keydown', function (e) { if (cutState && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); cutStepOn(false); } });
-$('toChapters').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); go('chapters'); });
+$('toChapters').addEventListener('click', function () {
+  duck(false); $('reportVeil').classList.remove('on');
+  // 마지막 판까지 풀었으면 맺는 이야기를 한 번 보여 준다
+  if (isCleared(PUZZLES.length - 1) && !save.cutSeen.end) playCut('end', function () { go('chapters'); });
+  else go('chapters');
+});
 $('openSettings').addEventListener('click', function () {
   $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
-  $('wipeAsk').hidden = true; $('buildStamp').textContent = '판: ' + BUILD; $('settingsVeil').classList.add('on');
+  $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
 $('optMusic').addEventListener('change', function () { save.music = this.checked; store(); music(); });
