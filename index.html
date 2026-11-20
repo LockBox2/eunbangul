@@ -147,8 +147,12 @@ button:disabled { opacity: .35; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .petal { display: none; } }
 /* 순회표 화면: 책상 위에 판이 놓인 모습. 재료는 나무, 종이, 은 */
 body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30%, rgba(16,10,8,.2) 70%, rgba(16,10,8,.5)), url("img/desk.webp") center / cover no-repeat fixed; background-color: #3a2319; }
-#play .bar .stage { background: url("img/plaque.webp") center / 100% 100% no-repeat; color: #4a2e1a; padding: 17px 14px 13px; font-size: .78em; line-height: 1.2; font-weight: 600; filter: drop-shadow(0 3px 3px rgba(0,0,0,.45)); }
+#play .bar .stage { position: relative; background: repeating-linear-gradient(1deg, rgba(70,35,12,.1) 0 1px, transparent 1px 7px), linear-gradient(#cf9560, #b0723f 55%, #94592b); border: 2px solid #3d2110; border-radius: 9px; box-shadow: inset 0 0 0 2px rgba(255,224,178,.38), inset 0 -4px 0 rgba(60,30,10,.3), 0 4px 0 #24130a, 0 9px 12px rgba(0,0,0,.5); color: #4a2e1a; padding: 10px 10px 8px; font-size: .78em; line-height: 1.25; font-weight: 600; }
+#play .bar .stage::before, #play .bar .stage::after { content: ""; position: absolute; top: -11px; width: 11px; height: 19px; border-radius: 6px; background: linear-gradient(90deg, #8f98ad, #f6f8fc 45%, #a7afc2); border: 2px solid #24130a; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+#play .bar .stage::before { left: 16%; }
+#play .bar .stage::after { right: 16%; }
 #play .bar .stage b { color: #2e1a0e; font-size: 1.3em; text-shadow: 0 1px 0 rgba(255,235,205,.5); }
+#play .bar { margin-top: 8px; }
 #play .bar .back { background: linear-gradient(#34406f, #232b52); border: 2px solid #c9cfdd; box-shadow: 0 3px 0 #10142c, 0 6px 10px rgba(0,0,0,.4); color: #fffaf0; }
 #play .board { background: linear-gradient(#4b3329, #2f1e18); border: 2px solid #c9cfdd; box-shadow: 0 0 0 2px #1c120e, 0 8px 0 #1c120e, 0 18px 30px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.1); }
 #play .mail { color: #f0dccb; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
@@ -156,8 +160,8 @@ body.onPlay { background: linear-gradient(rgba(16,10,8,.34), rgba(16,10,8,.2) 30
 #play .houses { gap: 5px 6px; color: #2a2010; font-size: .76em; }
 #play .houses span { background: linear-gradient(#fffaf0, #efe5cf); border-radius: 5px; padding: 2px 8px 2px 5px; box-shadow: 0 2px 0 rgba(0,0,0,.35); white-space: nowrap; }
 #play .houses i { border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(42,32,16,.25); }
-#play .actions button, #play .actions #hint { background: url("img/btn-navy.webp") center / 100% 100% no-repeat; border: 0; box-shadow: none; border-radius: 16px; color: #fffaf0; padding: 9px 6px 15px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.45)); font-weight: 600; }
-#play .actions #hint { background-image: url("img/btn-wood.webp"); color: #3a2414; font-weight: 700; }
+#play .actions button, #play .actions #hint { background: none; box-shadow: none; border-radius: 0; border-style: solid; border-color: transparent; border-width: 15px 15px 20px 15px; border-image: url("img/btn-navy.webp") 48 48 64 48 fill / 15px 15px 20px 15px stretch; color: #fffaf0; padding: 0 0 1px; min-height: 76px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.45)); font-weight: 600; }
+#play .actions #hint { border-image-source: url("img/btn-wood.webp"); color: #3a2414; font-weight: 700; }
 #play .actions button:active:not(:disabled) { transform: translateY(2px); filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
 .sheet .sign { position: relative; margin: 14px 0 10px; padding-right: 4px; }
 .sheet .stamp { position: absolute; right: 38px; top: -24px; width: 72px; height: 72px; opacity: 0; pointer-events: none; }
@@ -605,7 +609,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 240;
-var BUILD = '11월 20일 14:27';
+var BUILD = '11월 20일 14:30';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -613,7 +617,7 @@ var P = null, state = [], undoStack = [], moves = 0, hints = 0, done = false, ho
 var mistakes = 0, extraUsed = false, lastTap = null, MAX_MAIL = 3, busy = false;
 var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0 };
 
-['img/desk.webp', 'img/plaque.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
+['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
 function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
