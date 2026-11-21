@@ -189,6 +189,10 @@ body.noPat .board .cell:not(.cart) { background-image: none !important; }
 .infcard .infstat { margin: 6px 0 10px; text-align: center; }
 .infcard .psnote { transform: none; margin: 4px 0 0; }
 .infcard button { width: 100%; }
+/* 일지가 길어지면 오른쪽 아래에 맨 위로 가는 단추 */
+#chapters .totop { position: fixed; right: max(14px, calc(50% - 226px)); bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 30; width: 48px; height: 48px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(#3a4682, #232a55); color: #fff6dc; border: 2px solid #c9cfdd; box-shadow: 0 4px 0 #10142c, 0 6px 12px rgba(0,0,0,.45); }
+#chapters .totop svg { width: 24px; height: 24px; }
+#chapters .totop[hidden] { display: none; }
 .board.memo { outline: 3px dashed rgba(255,214,150,.9); outline-offset: 4px; }
 body.routeOn #memoBtn { display: none; }
 @media (prefers-reduced-motion: reduce) { #play .bar #memoBtn.nudge { animation: none; } }
@@ -522,6 +526,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 
 <!-- 일지 -->
 <main class="view" id="chapters">
+  <button type="button" class="totop" id="toTop" aria-label="맨 위로" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg></button>
   <div class="bar">
     <button type="button" class="back" data-go="home" aria-label="시작 화면으로">←</button>
     <h2>관리일지</h2>
@@ -904,7 +909,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 08:10';
+var BUILD = '11월 22일 08:12';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1038,6 +1043,7 @@ function play(name) {
 
 // 화면 바꾸기
 function go(view) {
+  $('toTop').hidden = true;
   if (view !== 'play') document.documentElement.classList.remove('noscroll');
   if (paused) { paused = false; $('play').classList.remove('paused'); $('pauseVeil').classList.remove('on'); }
   if (view !== 'play') { wipNow(); rWipNow(); routeExit(); if (daily) { daily = null; $('toChapters').textContent = '일지로 돌아가기'; } }
@@ -1682,6 +1688,8 @@ function fitBoard() {
   document.documentElement.classList.toggle('noscroll', document.documentElement.scrollHeight - window.innerHeight <= 1);
 }
 window.addEventListener('resize', fitBoard);
+window.addEventListener('scroll', function () { var t = $('toTop'); if (t) t.hidden = !$('chapters').classList.contains('on') || window.scrollY < 500; }, { passive: true });
+$('toTop').addEventListener('click', function () { window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); });
 // 연습: 첫 세 판에서 한 동작씩 시킨다. 시킨 동작만 받고, 하면 다음으로 넘어간다
 var tuto = null;
 function tutoPlan(i) {
