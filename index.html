@@ -686,6 +686,7 @@ var LINES = {
   hint: ['막시밀리안이 {h} 앞에 섰어요.'],
   clear: ['다 돌았습니다, 지점장님.'],
   fresh: ['새 순회표예요. {n}댁입니다.'],
+  resume: ['아까 하던 데서 이어서 해요.', '놓아 두신 그대로예요. 이어서 가요.'],
   freshBig: ['큰 댁이 있는 판이에요. 그 댁엔 두 사람을 보내 주세요.', '오늘은 {h}에 두 사람이 가요. 모두 {n}댁입니다.'],
   houseBig: ['{h}는 두 사람이면 돼요. 셋은 많아요.'],
   freshCart: ['수레가 서 있는 판이에요. 숫자만큼만 그 둘레로 보내 주세요.', '오늘은 수레가 나왔어요. {n}댁입니다.'],
@@ -785,7 +786,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 16:04';
+var BUILD = '11월 21일 16:08';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -801,7 +802,7 @@ function bellsOf(i) { return isCleared(i) ? ((save.bells && save.bells[i]) || 1)
 function bellsIn(c) { var t = (save.routes && save.routes[c]) || 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE && i < PUZZLES.length; i++) t += bellsOf(i); return t; }
 function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); if (save.routes) for (var k in save.routes) t += save.routes[k] || 0; return t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '' };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -877,7 +878,7 @@ function music() {
 }
 document.addEventListener('pointerdown', function () { if (!bgm || bgm.paused) music(); });
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { if (bgm) bgm.pause(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
+  if (document.hidden) { if (bgm) bgm.pause(); wipNow(); rWipNow(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
   else { music(); if (!done && $('play').classList.contains('on')) tStart = Date.now(); }
 });
 function play(name) {
@@ -887,7 +888,7 @@ function play(name) {
 
 // 화면 바꾸기
 function go(view) {
-  if (view !== 'play') routeExit();
+  if (view !== 'play') { wipNow(); rWipNow(); routeExit(); }
   ['home', 'chapters', 'play', 'cut'].forEach(function (v) { $(v).classList.toggle('on', v === view); });
   document.body.classList.toggle('onPlay', view === 'play');
   clearTimeout(idleTimer);
@@ -1257,6 +1258,7 @@ function startStage(i) {
   go('play');
   render(); say(big >= 0 ? 'freshBig' : carts.length ? 'freshCart' : 'fresh', { n: m, h: big >= 0 ? houseOf[big].name : '' });
   tutoStart(i); armIdle();
+  if (wipBack(i)) { render(); renderMail(); say('resume'); }
   var two = carts.some(function (k) { return k.k > 1; }), key = big >= 0 && carts.length ? 'mix' : big >= 0 ? 'big' : !carts.length ? '' : two ? 'cart2' : 'cart1';
   if (key && !save.ruleSeen[key] && tuto) { save.ruleSeen[key] = 1; store(); }
   if (key && !save.ruleSeen[key]) {
@@ -1358,7 +1360,30 @@ function render() {
     }
     el.setAttribute('aria-label', (r + 1) + '행 ' + (c + 1) + '열, ' + h + ', ' + (s === 2 ? '관리원' : s === 1 ? '못 감' : '빈칸'));
   }
+  wipSoon();
   return cf;
+}
+// ───── 풀던 판 적어 두기 ─────
+// 판을 풀다가 나가거나 앱이 닫혀도, 같은 판을 다시 열면 놓아 둔 자리와 편지 수, 걸린 시간이 그대로 돌아온다.
+// 연습 중인 판과 끝난 판은 적지 않는다. 편지 세 통으로 끝난 판은 지운다 (끝나기 직전으로 되돌아가는 구멍을 막는다)
+var wipT = null;
+function wipSoon() { clearTimeout(wipT); wipT = setTimeout(wipNow, 250); }
+function wipNow() {
+  clearTimeout(wipT); wipT = null;
+  if (route || done || tuto || !P || !state.length || !$('play').classList.contains('on')) return;
+  var st = state.map(function (row) { return row.join(''); }).join('');
+  if (!/[12]/.test(st) && !mistakes && !hintPen && !slips) { if (save.wip && save.wip.i === save.stage) { save.wip = null; store(); } return; }
+  save.wip = { i: save.stage, set: SET_VERSION, st: st, m: mistakes, s: slips, h: hintPen, hn: hints, x: extraUsed ? 1 : 0, t: elapsed(), mv: moves };
+  store();
+}
+function wipDrop() { clearTimeout(wipT); wipT = null; if (save.wip) { save.wip = null; store(); } }
+function wipBack(i) {
+  var w = save.wip, n = P.n;
+  if (!w || w.i !== i || w.set !== SET_VERSION || tuto || typeof w.st !== 'string' || w.st.length !== n * n || !/^[012]+$/.test(w.st)) return false;
+  for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) state[r][c] = cartAt(r, c) ? 0 : Number(w.st.charAt(r * n + c));
+  mistakes = Math.max(0, Math.min(MAX_MAIL - 1, w.m | 0)); slips = Math.max(0, w.s | 0); hintPen = Math.max(0, w.h | 0); hints = Math.max(0, w.hn | 0);
+  extraUsed = !!w.x; moves = Math.max(0, w.mv | 0); tAcc = Math.max(0, w.t | 0) * 1000; tStart = Date.now();
+  return true;
 }
 function snapshot() { undoStack.push(state.map(function (row) { return row.slice(); })); if (undoStack.length > 200) undoStack.shift(); }
 function afterChange(r, c) {
@@ -1619,7 +1644,7 @@ function wrong(r, c) {
     why.cells.forEach(function (q) { var w = cellEl(q[0], q[1]); w.classList.remove('why'); void w.offsetWidth; w.classList.add('why'); setTimeout(function () { w.classList.remove('why'); }, 2000); });
   } else if (other) { say('wrongOther', { h: other }); blinkHouse(otherReg); } else if (byCart) say('wrongCart'); else { say('wrongHouse', { h: houseOf[P.reg[r][c]].name }); blinkHouse(P.reg[r][c]); }
   if (mistakes >= MAX_MAIL) {
-    done = true; clearTimeout(idleTimer);
+    done = true; clearTimeout(idleTimer); wipDrop();
     $('overMore').hidden = extraUsed; $('overNote').hidden = extraUsed;
     setTimeout(function () { $('overVeil').classList.add('on'); (extraUsed ? $('overRetry') : $('overMore')).focus(); }, 700);
   }
@@ -1642,7 +1667,7 @@ function petals() {
 }
 function finish() {
   tutoEnd(); petals();
-  done = true; clearTimeout(idleTimer);
+  done = true; clearTimeout(idleTimer); wipDrop();
   var i = save.stage, before = chaptersDone(), homesBefore = households(), firstTime = !isCleared(i), memo = '';
   if (firstTime && (i + 1) % CHAPTER_SIZE !== 0) {
     for (var h = 0; h < houseOf.length && !memo; h++) {
@@ -1758,7 +1783,24 @@ function rBegin(R, opt) {
   g.innerHTML = h + '<svg id="rline" viewBox="0 0 ' + n + ' ' + n + '" preserveAspectRatio="none" aria-hidden="true">' + walls + '<polyline class="a"/><polyline class="b"/></svg><img id="rhead" src="img/donkey-base.webp" alt="" hidden>';
   $('rhead').style.width = (72 / n) + '%';
   rsay(opt.practice ? '1번 댁에서 출발해요. 골목은 하나도 빼면 안 된대요.' : RLINES[opt.c]);
+  // 긋던 길이 적혀 있으면 이어서 긋는다 (길이 규칙에 맞는지 한 칸씩 다시 밟아 본다)
+  var w = save.wipR;
+  if (!opt.practice && w && w.c === opt.c && w.p && w.p.length) {
+    var ok = route.num[w.p[0]] === 1;
+    for (var k = 0; ok && k < w.p.length; k++) {
+      var cell = w.p[k], prev = k ? w.p[k - 1] : -1;
+      if (k && (rNbrs(prev).indexOf(cell) < 0 || !rCan(cell))) { ok = false; break; }
+      route.path.push(cell); if (route.num[cell]) route.next = route.num[cell] + 1;
+    }
+    if (ok) { route.hints = Math.max(0, w.h | 0); rsay('아까 긋던 길에서 이어서 가요.'); }
+    else { route.path = []; route.next = 1; save.wipR = null; store(); }
+  }
   rDraw(); rTutoShow(); routeFit();
+}
+function rWipNow() {
+  var R = route; if (!R || R.practice || R.done) return;
+  if (!R.path.length && !R.hints) { if (save.wipR && save.wipR.c === R.c) { save.wipR = null; store(); } return; }
+  save.wipR = { c: R.c, p: R.path.slice(), h: R.hints }; store();
 }
 function routeFit() {
   var b = $('rboard'); b.style.width = '';
@@ -1778,6 +1820,7 @@ function rDraw() {
   head.hidden = !p.length || !!R.num[last];
   if (p.length) { head.style.left = ((last % n + 0.5) * 100 / n) + '%'; head.style.top = ((Math.floor(last / n) + 0.5) * 100 / n) + '%'; }
   $('rundo').disabled = !p.length || R.done; $('rreset').disabled = !p.length || R.done; $('rhint').disabled = R.done;
+  clearTimeout(R.wt); R.wt = setTimeout(rWipNow, 300);
 }
 function rNope(i) { var el = $('rgrid').querySelector('.rc[data-i="' + i + '"]'); if (!el) return; el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); }
 function rNbrs(i) {
@@ -1873,6 +1916,7 @@ $('rhint').addEventListener('click', function () {
 });
 function rWin() {
   var R = route; R.done = true; R.drag = false;
+  if (!R.practice && save.wipR) { save.wipR = null; store(); }
   $('rtuto').hidden = true; R.tuto = null;
   rDraw();
   var g = $('rgrid'); R.path.forEach(function (i, k) { g.querySelector('.rc[data-i="' + i + '"]').style.setProperty('--d', (k * 0.03) + 's'); }); g.classList.add('won');
@@ -2224,7 +2268,7 @@ $('rankName').addEventListener('keydown', function (e) { if (e.key === 'Enter') 
 $('rankRename').addEventListener('click', function () { $('rankNameBox').hidden = false; $('rankRename').hidden = true; $('rankName').focus(); });
 $('wipe').addEventListener('click', function () { $('wipeAsk').hidden = false; });
 $('wipeNo').addEventListener('click', function () { $('wipeAsk').hidden = true; });
-$('wipeYes').addEventListener('click', function () { save.stage = 0; save.cleared = []; save.memoSeen = {}; save.ruleSeen = {}; save.cutSeen = {}; save.tutoSeen = {}; save.bells = {}; save.best = {}; save.routes = {}; store(); $('wipeAsk').hidden = true; $('settingsVeil').classList.remove('on'); renderHome(); });
+$('wipeYes').addEventListener('click', function () { save.stage = 0; save.cleared = []; save.memoSeen = {}; save.ruleSeen = {}; save.cutSeen = {}; save.tutoSeen = {}; save.bells = {}; save.best = {}; save.routes = {}; save.wip = null; save.wipR = null; store(); $('wipeAsk').hidden = true; $('settingsVeil').classList.remove('on'); renderHome(); });
 
 load();
 // 웹앱으로 올렸을 때: 한 번 받은 뒤에는 인터넷 없이도 열린다
