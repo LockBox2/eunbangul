@@ -67,6 +67,21 @@ button:disabled { opacity: .35; cursor: default; }
 .menu { display: grid; gap: 8px; }
 .menu .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .menu .row button { padding-left: 4px; padding-right: 4px; white-space: nowrap; }
+.ranklist { list-style: none; margin: 8px 0 10px; padding: 0; max-height: 46vh; overflow-y: auto; border-top: 1px solid #d8cfba; }
+.ranklist li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 8px; align-items: baseline; padding: 7px 4px; border-bottom: 1px solid #e6dfcd; }
+.ranklist li b { font-weight: 700; text-align: right; }
+.ranklist li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranklist li em { font-style: normal; font-weight: 700; white-space: nowrap; }
+.ranklist li em small { font-weight: 400; opacity: .65; margin-left: 4px; }
+.ranklist li.mine { background: #e7ecfa; border-radius: 6px; }
+.ranklist li.top b { color: #c24a2e; }
+.ranklist .empty { display: block; text-align: center; opacity: .7; padding: 16px 0; }
+.rankme { margin: 0 0 6px; font-weight: 700; }
+.rankname { margin: 6px 0 10px; }
+.rankname label { display: block; font-size: .9em; margin-bottom: 4px; }
+.rankname input { width: 100%; min-width: 0; box-sizing: border-box; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid #b9ad92; background: #fffdf6; color: var(--ink); }
+.rankname .two { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.rankname small { display: block; margin-top: 6px; font-size: .8em; opacity: .75; line-height: 1.5; }
 .storylist { display: grid; gap: 8px; margin: 8px 0 12px; }
 .storylist button { text-align: left; }
 .storylist small { display: block; opacity: .7; font-weight: 400; }
@@ -443,6 +458,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
         <button type="button" id="openStory">이야기</button>
         <button type="button" id="openSettings">설정</button>
       </div>
+      <button type="button" id="openRank">은방울 순위</button>
     </div>
   </div>
 </main>
@@ -549,6 +565,22 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <button type="button" id="hayGive">건초 주기</button>
     <p class="note">광고 자리입니다. 출시판에서는 여기서 광고를 보고, 은방울 회원은 광고 없이 넘어갑니다. 지금은 누르면 바로 나섭니다.</p>
     <button type="button" class="quiet" data-close="hayVeil">그만두기</button>
+  </div>
+</div>
+
+<div class="veil" id="rankVeil" role="dialog" aria-modal="true" aria-labelledby="rk-t">
+  <div class="sheet">
+    <h2 id="rk-t">은방울 순위</h2>
+    <p class="rankme" id="rankMe"></p>
+    <div class="rankname" id="rankNameBox" hidden>
+      <label for="rankName">순위표에 올릴 이름</label>
+      <div class="two"><input type="text" id="rankName" maxlength="12" autocomplete="off" placeholder="열두 자까지"><button type="button" id="rankSave">올리기</button></div>
+      <small>순위표에 그대로 보입니다. 실명은 쓰지 마세요. 은방울 수와 푼 판 수만 함께 올라갑니다.</small>
+    </div>
+    <ol class="ranklist" id="rankList" aria-live="polite"></ol>
+    <p class="movemsg" id="rankMsg"></p>
+    <button type="button" class="quiet" id="rankRename" hidden>이름 바꾸기</button>
+    <button type="button" data-close="rankVeil">닫기</button>
   </div>
 </div>
 
@@ -750,7 +782,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 12:25';
+var BUILD = '11월 21일 12:56';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -766,7 +798,7 @@ function bellsOf(i) { return isCleared(i) ? ((save.bells && save.bells[i]) || 1)
 function bellsIn(c) { var t = (save.routes && save.routes[c]) || 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE && i < PUZZLES.length; i++) t += bellsOf(i); return t; }
 function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); if (save.routes) for (var k in save.routes) t += save.routes[k] || 0; return t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {} };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '' };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -1627,6 +1659,7 @@ function finish() {
   if (newBest) save.best[i] = took;
   var bh = ''; for (var bk = 0; bk < 3; bk++) bh += '<i' + (bk < got ? ' class="got" style="--bd:' + (1.15 + bk * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
   $('rbells').innerHTML = bh; $('rbells').setAttribute('aria-label', '은방울 ' + got + '개');
+  setTimeout(lbPush, 1500);
   $('rtime').textContent = '걸린 시간 ' + clock(took) + (oldBest ? (newBest ? ' · 새 기록 (전에는 ' + clock(oldBest) + ')' : ' · 가장 빠른 기록 ' + clock(oldBest)) : '');
   store();
   var chapterEnd = chaptersDone() > before, last = i === PUZZLES.length - 1;
@@ -1863,6 +1896,7 @@ function rWin() {
   }
   var bh = ''; if (!R.practice) for (var b = 0; b < 3; b++) bh += '<i' + (b < got ? ' class="got" style="--bd:' + (1.15 + b * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
   $('rrbells').innerHTML = bh; $('rrbells').hidden = R.practice; $('rrbells').setAttribute('aria-label', '은방울 ' + got + '개');
+  if (!R.practice) setTimeout(lbPush, 1500);
   petals(); duck(true); setTimeout(function () { play('clear'); }, 150);
   setTimeout(function () {
     if (route !== R) return;
@@ -2074,7 +2108,7 @@ function packSave() {
   var c = '', t = [], r = '', i;
   for (i = 0; i < PUZZLES.length; i++) { c += bellsOf(i); t.push(save.best && save.best[i] ? save.best[i] : ''); }
   for (i = 0; i * CHAPTER_SIZE < PUZZLES.length; i++) r += (save.routes && save.routes[i]) || 0;
-  var o = { v: 1, set: SET_VERSION, st: save.stage, c: c, t: t.join(','), r: r, memo: save.memoSeen, rule: save.ruleSeen, cut: save.cutSeen, tuto: save.tutoSeen };
+  var o = { v: 1, set: SET_VERSION, st: save.stage, c: c, t: t.join(','), r: r, memo: save.memoSeen, rule: save.ruleSeen, cut: save.cutSeen, tuto: save.tutoSeen, lb: save.lbName ? [save.lbId, save.lbName] : null };
   return 'EB1.' + btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 function unpackSave(code) {
@@ -2094,6 +2128,8 @@ function applySave(o) {
   for (i = 0; i < (o.r || '').length; i++) { var q = Number(o.r.charAt(i)) || 0; if (q) save.routes[i] = Math.min(3, q); }
   save.stage = Math.max(0, Math.min(PUZZLES.length - 1, Number(o.st) || 0));
   save.memoSeen = o.memo || {}; save.ruleSeen = o.rule || {}; save.cutSeen = o.cut || {}; save.tutoSeen = o.tuto || {};
+  // 순위표의 이름과 기기 번호도 같이 옮겨서, 옮긴 뒤에도 같은 줄로 이어지게 한다
+  if (o.lb && o.lb[0] && o.lb[1]) { save.lbId = String(o.lb[0]).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40); save.lbName = lbCleanName(o.lb[1]); save.lbSent = ''; }
   store();
 }
 $('openMove').addEventListener('click', function () {
@@ -2122,6 +2158,67 @@ $('moveYes').addEventListener('click', function () {
   $('moveMsg').className = 'movemsg ok'; $('moveMsg').textContent = '기록을 옮겼습니다. ' + save.cleared.length + '판, 은방울 ' + bellsAll() + '개.';
   $('moveOut').value = packSave(); renderHome();
 });
+// ───── 은방울 순위표 ─────
+// 이름을 정한 사람만 은방울 수와 푼 판 수를 올린다. 서버는 구글 시트에 붙인 작은 스크립트다 (기기 번호·이름·은방울·푼 판·때)
+var LB_URL = 'https://script.google.com/macros/s/AKfycbwkR0cBMjrAJm-XEITQAZsnVTfn_9w0bPTUFeEomDs87qg1e7y3u1qcZ8xdjcD1tBX0xA/exec';
+if (TEST) { var lbm = /[?&]lb=([^&]+)/.exec(location.search); if (lbm) LB_URL = decodeURIComponent(lbm[1]); }
+// 서버가 준비될 때까지는 시험 주소(?test=1)에서만 보인다. 준비되면 LB_LIVE를 true로
+var LB_LIVE = false, lbOn = LB_LIVE || TEST;
+var lbBusy = false, lbBoard = null;
+function lbId() {
+  if (!save.lbId) { var a = 'abcdefghijklmnopqrstuvwxyz0123456789', t = ''; for (var i = 0; i < 20; i++) t += a.charAt(Math.floor(Math.random() * a.length)); save.lbId = t; store(); }
+  return save.lbId;
+}
+function lbCleanName(v) { return String(v || '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/^[=+\-@\s]+/, '').trim().slice(0, 12); }
+function lbAsk(method, body) {
+  var opt = method === 'POST' ? { method: 'POST', body: JSON.stringify(body) } : {};
+  var url = method === 'POST' ? LB_URL : LB_URL + (LB_URL.indexOf('?') < 0 ? '?' : '&') + 'id=' + encodeURIComponent(save.lbId || '') + '&t=' + Date.now();
+  return fetch(url, opt).then(function (r) { if (!r.ok) throw new Error('http'); return r.json(); }).then(function (d) { if (!d || !d.ok) throw new Error('refused'); return d; });
+}
+// 판이나 순회 길을 마칠 때마다 조용히 올린다. 달라진 게 없으면 안 올리고, 안 닿으면 다음 기회에 다시 올린다
+function lbPush(force) {
+  if (!lbOn || !save.lbName || lbBusy || !window.fetch) return Promise.resolve(null);
+  var sig = save.lbName + '|' + bellsAll() + '|' + save.cleared.length;
+  if (!force && save.lbSent === sig) return Promise.resolve(null);
+  lbBusy = true;
+  return lbAsk('POST', { id: lbId(), name: save.lbName, bells: bellsAll(), cleared: save.cleared.length })
+    .then(function (d) { lbBusy = false; save.lbSent = sig; store(); lbBoard = d; return d; }, function () { lbBusy = false; return null; });
+}
+function lbRender(d, note) {
+  var list = $('rankList'), h = '';
+  if (d) {
+    lbBoard = d;
+    (d.top || []).forEach(function (r) {
+      var li = document.createElement('li'), b = document.createElement('b'), sp = document.createElement('span'), em = document.createElement('em'), sm = document.createElement('small');
+      li.className = (r.mine ? 'mine ' : '') + (r.rank <= 3 ? 'top' : ''); b.className = 'num'; b.textContent = r.rank; sp.textContent = r.name;
+      em.className = 'num'; em.textContent = r.bells; sm.textContent = r.cleared + '판'; em.appendChild(sm);
+      li.appendChild(b); li.appendChild(sp); li.appendChild(em); h += li.outerHTML;
+    });
+    list.innerHTML = h || '<li class="empty">아직 아무도 올리지 않았습니다. 첫 줄을 차지해 보세요.</li>';
+    $('rankMe').textContent = d.me ? '내 순위 ' + d.me.rank + '위 · 은방울 ' + d.me.bells + '개 (모두 ' + d.total + '명)' : '지금 내 은방울 ' + bellsAll() + '개 · 올린 사람 ' + d.total + '명';
+  } else if (!lbBoard) { list.innerHTML = ''; $('rankMe').textContent = '지금 내 은방울 ' + bellsAll() + '개'; }
+  $('rankMsg').className = 'movemsg'; $('rankMsg').textContent = note || '';
+  $('rankNameBox').hidden = !!save.lbName; $('rankRename').hidden = !save.lbName;
+}
+function lbOpen() {
+  $('rankName').value = save.lbName || '';
+  lbRender(lbBoard, '순위표를 불러오는 중입니다…');
+  $('rankVeil').classList.add('on');
+  var fail = function () { lbRender(null, '지금은 순위표에 닿지 않습니다. 인터넷을 확인하고 다시 열어 주세요.'); };
+  if (!window.fetch) { fail(); return; }
+  (save.lbName ? lbPush(true).then(function (d) { return d || lbAsk('GET'); }) : lbAsk('GET')).then(function (d) { lbRender(d, ''); }, fail);
+}
+$('openRank').hidden = !lbOn;
+$('openRank').addEventListener('click', lbOpen);
+$('rankSave').addEventListener('click', function () {
+  var name = lbCleanName($('rankName').value);
+  if (!name) { $('rankMsg').textContent = '이름을 한 글자 이상 적어 주세요.'; return; }
+  save.lbName = name; save.lbSent = ''; store();
+  lbRender(lbBoard, '올리는 중입니다…');
+  lbPush(true).then(function (d) { if (d) lbRender(d, ''); else lbRender(null, '이름은 정했지만 지금은 올리지 못했습니다. 다음에 판을 풀 때 다시 올립니다.'); });
+});
+$('rankName').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('rankSave').click(); });
+$('rankRename').addEventListener('click', function () { $('rankNameBox').hidden = false; $('rankRename').hidden = true; $('rankName').focus(); });
 $('wipe').addEventListener('click', function () { $('wipeAsk').hidden = false; });
 $('wipeNo').addEventListener('click', function () { $('wipeAsk').hidden = true; });
 $('wipeYes').addEventListener('click', function () { save.stage = 0; save.cleared = []; save.memoSeen = {}; save.ruleSeen = {}; save.cutSeen = {}; save.tutoSeen = {}; save.bells = {}; save.best = {}; save.routes = {}; store(); $('wipeAsk').hidden = true; $('settingsVeil').classList.remove('on'); renderHome(); });
