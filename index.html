@@ -747,7 +747,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 08:10';
+var BUILD = '11월 21일 10:29';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1515,7 +1515,12 @@ function tryPlace(r, c) {
   if (!tutoOk('place', r, c)) return;
   if (livesOn() && P.sol[r] !== c) { wrong(r, c); return; }
   // 편지가 안 오는 1장과 편한 순회에서도 틀린 자리에 세운 횟수는 센다 (은방울이 깎인다)
-  if (P.sol[r] !== c && !guided()) slips++;
+  // 하나를 잘못 세우면 그걸 믿고 줄줄이 잘못 세우게 되니, 판 위에 틀린 관리원이 이미 있는 동안은 더 세지 않는다 (한 번 헤맨 걸 한 번으로 친다)
+  if (P.sol[r] !== c && !guided()) {
+    var astray = false;
+    for (var wr = 0; wr < P.n && !astray; wr++) for (var wc = 0; wc < P.n; wc++) if (state[wr][wc] === 2 && P.sol[wr] !== wc) { astray = true; break; }
+    if (!astray) slips++;
+  }
   snapshot(); state[r][c] = 2; moves++; afterChange(r, c);
 }
 // 거기 놓으면 왜 안 되는지: 그 한 수 때문에 갈 자리가 없어지는 댁이나 줄을 찾아 그 칸들을 돌려준다
@@ -1604,9 +1609,9 @@ function finish() {
   $('rmemo').hidden = !memo;
   if (memo) { $('rmemo').innerHTML = '<b>리나의 메모</b>'; $('rmemo').appendChild(document.createTextNode(memo)); }
   if (firstTime) save.cleared.push(i);
-  // 은방울: 틀림도 힌트도 없으면 셋, 하나면 둘, 그 밖은 하나. 가장 좋았던 기록을 남긴다
+  // 은방울: 틀림도 힌트도 없으면 셋, 틀렸어도 막시밀리안을 안 불렀으면 둘, 불렀으면 하나. 가장 좋았던 기록을 남긴다
   if (tStart) { tAcc += Date.now() - tStart; tStart = null; }
-  var took = elapsed(), pen = slips + hintPen, got = pen === 0 ? 3 : pen === 1 ? 2 : 1;
+  var took = elapsed(), got = hintPen > 0 ? 1 : slips > 0 ? 2 : 3;
   if (!save.bells) save.bells = {}; if (!save.best) save.best = {};
   var oldBest = save.best[i], newBest = !oldBest || took < oldBest;
   if (got > (save.bells[i] || 0)) save.bells[i] = got;
@@ -1622,7 +1627,7 @@ function finish() {
   say('clear');
   duck(true);
   setTimeout(function () { play('clear'); }, 150);
-  $('rbody').textContent = (i + 1) + '번 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단' + (livesOn() ? ', 항의 편지 ' + mistakes + '통' : ', 잘못 세운 횟수 ' + slips + '번') + '.' + (chapterEnd ? ' ' + Math.ceil((i + 1) / CHAPTER_SIZE) + '장을 덮습니다.' : '') + (households() > homesBefore ? ' 관리 고객이 ' + households() + '댁으로 늘었습니다.' : '') + (askRoute ? ' 이제 이 장의 순회 길을 잡을 차례입니다.' : '');
+  $('rbody').textContent = (i + 1) + '번 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단' + (livesOn() ? ', 항의 편지 ' + mistakes + '통' : ', 길을 잘못 든 횟수 ' + slips + '번') + '.' + (chapterEnd ? ' ' + Math.ceil((i + 1) / CHAPTER_SIZE) + '장을 덮습니다.' : '') + (households() > homesBefore ? ' 관리 고객이 ' + households() + '댁으로 늘었습니다.' : '') + (askRoute ? ' 이제 이 장의 순회 길을 잡을 차례입니다.' : '');
   var lastOfChapter = (i + 1) % CHAPTER_SIZE === 0;
   $('rps').hidden = !lastOfChapter;
   if (lastOfChapter) $('rps').textContent = POSTSCRIPTS[(Math.ceil((i + 1) / CHAPTER_SIZE) - 1) % POSTSCRIPTS.length][1] + ' (리나)';
