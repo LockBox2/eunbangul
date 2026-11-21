@@ -712,6 +712,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <p>칸을 한 번 누르면 못 가는 칸입니다. 관리원은 칸을 길게 눌러서 보냅니다. 빠르게 두 번 눌러도 됩니다. 손가락으로 밀면 못 가는 칸을 이어서 칠하고, X에서 시작해 밀면 X를 이어서 지웁니다.</p>
     <p>4판부터는 위의 연필로 메모를 펼 수 있습니다. 펴 둔 동안은 X도 관리원도 연습으로만 적힙니다. 붉은 X와 흐릿하게 일렁이는 관리원이 메모입니다. 메모는 맞는지 틀리는지 알려 주지 않고, 은방울이나 항의 편지와도 상관없습니다. 진짜로 보내려면 메모를 접고 놓으세요.</p>
     <p>2장부터는 맞지 않는 칸에 보내면 그 댁에서 항의 편지가 옵니다. 세 통이 쌓이면 순회표를 다시 짭니다.</p>
+    <p><b>막시밀리안</b>을 부르면 맞는 자리 하나에 관리원을 직접 데려다 놓습니다. 판에 잘못 선 관리원이 있으면 먼저 그 자리로 가서 버팁니다. 하루 한 번은 그냥 와 주고, 그 뒤로는 건초가 듭니다. 부른 판은 은방울이 하나 줄어듭니다.</p>
     <button type="button" data-close="rulesVeil">알겠습니다</button>
   </div>
 </div>
@@ -923,7 +924,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 08:25';
+var BUILD = '11월 22일 08:32';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
