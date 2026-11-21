@@ -470,6 +470,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 /* 시작 화면: 제목 띠, 지점장실 그림, 버튼 서랍을 위에서 아래로 쌓는다. 그림 위에는 아무것도 얹지 않는다. */
 #home { padding: 0; gap: 0; background: #2b1d1a; text-align: left; }
 #home .stagebox { position: relative; flex: 1; min-height: 240px; overflow: hidden; }
+#home .ver { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: rgba(255,250,235,.85); text-shadow: 0 1px 2px rgba(0,0,0,.7); pointer-events: none; }
 #home .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 80%; }
 #home .logo { position: absolute; left: 0; right: 0; top: 8px; margin: 0; display: flex; justify-content: center; pointer-events: none; }
 #home .logo img { width: min(88%, 380px); height: auto; display: block; filter: drop-shadow(0 0 5px #f8e6d8) drop-shadow(0 0 10px #f8e6d8) drop-shadow(0 3px 4px rgba(60,30,30,.25)); }
@@ -498,6 +499,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="stagebox">
     <img class="scene" src="img/office.webp" alt="지점장실. 책상에 앉은 안나의 뒷모습 너머로 리나가 순회표를 들고 보고하고, 창밖에서는 막시밀리안이 풀을 뜯는다." width="900" height="1600">
     <h1 class="logo"><img src="img/logo.webp" alt="은방울 관리일지" width="1000" height="333"></h1>
+    <span class="ver num" id="homeVer" aria-hidden="true"></span>
   </div>
   <div class="drawer">
     <p class="champ" id="champ" hidden></p>
@@ -867,7 +869,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 01:38';
+var BUILD = '11월 22일 01:39';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1011,6 +1013,7 @@ function go(view) {
   window.scrollTo(0, 0);
 }
 function renderHome() {
+  $('homeVer').textContent = '시험판 ' + BUILD;
   $('homeCount').textContent = households();
   var n = nextOpen(), rp = routePending();
   $('resume').textContent = save.cleared.length === 0 ? '순회표 짜기' : rp >= 0 ? (rp + 1) + '장 순회 길 잡기' : n < 0 ? (infOpen() ? '무한 순회 · ' + ((save.inf.n || 0) + 1) + '판째' : '다시 둘러보기') : (n + 1) + '번 순회표 이어서 짜기';
