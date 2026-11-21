@@ -183,6 +183,9 @@ body.noPat .board .cell:not(.cart) { background-image: none !important; }
 #home .dailybtn:disabled { opacity: .55; }
 #home .champ { margin: 0 0 8px; padding: 6px 12px; border-radius: 10px; background: rgba(255,240,205,.92); color: #4a3216; font-size: .92em; text-align: center; box-shadow: 0 3px 0 rgba(90,60,20,.35); }
 #home .champ b { color: #b3401f; }
+.infcard .infstat { margin: 6px 0 10px; text-align: center; }
+.infcard .psnote { transform: none; margin: 4px 0 0; }
+.infcard button { width: 100%; }
 .board.memo { outline: 3px dashed rgba(255,214,150,.9); outline-offset: 4px; }
 body.routeOn #memoBtn { display: none; }
 @media (prefers-reduced-motion: reduce) { #play .bar #memoBtn.nudge { animation: none; } }
@@ -860,7 +863,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 01:13';
+var BUILD = '11월 22일 01:26';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -874,7 +877,7 @@ function clock(sec) { var m = Math.floor(sec / 60), x = sec % 60; return (m ? m 
 function clockShort(sec) { var m = Math.floor(sec / 60), x = sec % 60; return m + ':' + (x < 10 ? '0' : '') + x; }
 function bellsOf(i) { return isCleared(i) ? ((save.bells && save.bells[i]) || 1) : 0; }
 function bellsIn(c) { var t = (save.routes && save.routes[c]) || 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE && i < PUZZLES.length; i++) t += bellsOf(i); return t; }
-function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); if (save.routes) for (var k in save.routes) t += save.routes[k] || 0; if (save.daily) for (var d in save.daily) t += (save.daily[d] && save.daily[d].b) || 0; return t; }
+function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); if (save.routes) for (var k in save.routes) t += save.routes[k] || 0; if (save.daily) for (var d in save.daily) t += (save.daily[d] && save.daily[d].b) || 0; if (save.inf) t += save.inf.b || 0; return t; }
 // 오늘의 순회표: 한국 날짜로 하루 한 판, 모두에게 같은 판. 월요일 7×7 쉬움에서 일요일 9×9 어려움까지 오른다
 var daily = null, WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 function dayNum() { return Math.floor((Date.now() + 9 * 3600000) / 86400000); }
@@ -890,8 +893,23 @@ function startDaily() {
   daily = { dn: dn, key: dayKey(dn), Z: dailyZ(dn) };
   startStage(-1);
 }
+// 무한 순회: 240판과 순회 길을 다 마친 사람에게. 언제나 9×9 어려움, 묶음을 다 돌면 처음부터 다시
+var INF = null, INF_URL = 'data/inf-1.json';
+function infOpen() { return openAll() || (save.cleared.length >= PUZZLES.length && !Object.keys(ROUTES).some(function (c) { return routeDue(Number(c)); })); }
+function startInf() {
+  if (!infOpen()) return;
+  if (!INF) {
+    fetch(INF_URL).then(function (r) { if (!r.ok) throw new Error('http'); return r.json(); }).then(function (a) { INF = a; startInf(); },
+      function () { alertNote('무한 순회 판을 받아 오지 못했습니다. 인터넷에 한 번 연결된 상태에서 다시 눌러 주세요.'); });
+    return;
+  }
+  var k = (save.inf.n || 0) % INF.length, z = INF[k];
+  daily = { inf: true, k: k, no: (save.inf.n || 0) + 1, Z: ['무한 순회', 9, '어려움', z[0], z[1], z[2], z[3]] };
+  startStage(-1);
+}
+function alertNote(t) { $('champ').hidden = false; $('champ').textContent = t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {} };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -978,7 +996,7 @@ function play(name) {
 // 화면 바꾸기
 function go(view) {
   if (paused) { paused = false; $('play').classList.remove('paused'); $('pauseVeil').classList.remove('on'); }
-  if (view !== 'play') { wipNow(); rWipNow(); routeExit(); }
+  if (view !== 'play') { wipNow(); rWipNow(); routeExit(); if (daily) { daily = null; $('toChapters').textContent = '일지로 돌아가기'; } }
   ['home', 'chapters', 'play', 'cut'].forEach(function (v) { $(v).classList.toggle('on', v === view); });
   document.body.classList.toggle('onPlay', view === 'play');
   clearTimeout(idleTimer);
@@ -989,7 +1007,7 @@ function go(view) {
 function renderHome() {
   $('homeCount').textContent = households();
   var n = nextOpen(), rp = routePending();
-  $('resume').textContent = save.cleared.length === 0 ? '순회표 짜기' : rp >= 0 ? (rp + 1) + '장 순회 길 잡기' : n < 0 ? '다시 둘러보기' : (n + 1) + '번 순회표 이어서 짜기';
+  $('resume').textContent = save.cleared.length === 0 ? '순회표 짜기' : rp >= 0 ? (rp + 1) + '장 순회 길 잡기' : n < 0 ? (infOpen() ? '무한 순회 · ' + ((save.inf.n || 0) + 1) + '판째' : '다시 둘러보기') : (n + 1) + '번 순회표 이어서 짜기';
   // 오늘의 순회표 단추와 어제의 1등
   var dn = dayNum(), z = dailyZ(dn), od = dailyOpen(), mine = save.daily[dayKey(dn)];
   $('openDaily').disabled = !od; $('openDaily').classList.toggle('done', !!mine);
@@ -1017,6 +1035,10 @@ function renderChapters() {
     }
     html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + '"><header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + (got ? ' · 은방울 ' + bellsIn(c) + ' / ' + (CHAPTER_SIZE * 3 + (ROUTES[c] ? 3 : 0)) : '') + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">' + (clearedIn(c - 1) === CHAPTER_SIZE && routeDue(c - 1) ? '앞 장의 순회 길을 잡으면 열립니다.' : '앞 장을 끝까지 풀면 열립니다.') + '</p>') + '<div class="stages">' + btns + '</div>' + (ROUTES[c] ? '<button type="button" class="routebtn' + (save.routes && save.routes[c] ? ' cleared' : '') + (routeOpen(c) && routeDue(c) ? ' due' : '') + '" data-route="' + c + '"' + (routeOpen(c) ? '' : ' disabled') + '><img src="img/donkey-base.webp" alt="">순회 길 잡기' + (save.routes && save.routes[c] ? '<span class="bl" aria-label="은방울 ' + save.routes[c] + '개">' + '<i class="on"></i>'.repeat(save.routes[c]) + '<i></i>'.repeat(3 - save.routes[c]) + '</span>' : '<small>' + (routeOpen(c) ? '잡으면 다음 장이 열립니다' : '이 장 스무 판을 다 풀면 열립니다') + '</small>') + '</button>' + (save.cutSeen.route && c === 0 ? '<p class="replay"><button type="button" data-replay="route">「' + CUTS.route.title + '」 이야기 다시 보기</button></p>' : '') : '') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote"><b>리나의 추신</b>' + POSTSCRIPTS[c][1].replace(/^추신\.\s*/, '') + '</p>' : '') + '</section>';
   }
+  var io = infOpen();
+  html += '<section class="chapter infcard' + (io ? '' : ' locked') + '"><header><h3>그 뒤의 일지 · 무한 순회</h3><small class="num">9×9 · 어려움</small></header>' +
+    (io ? '<p class="psnote">리나: 지점장님, 순회표는 끝이 없어요. 내일 것도 벌써 왔어요.</p><p class="infstat">무한 순회 <b class="num">' + (save.inf.n || 0) + '</b>판 · 은방울 <b class="num">' + (save.inf.b || 0) + '</b>개</p><button type="button" class="primary" data-inf="1">' + ((save.inf.n || 0) + 1) + '번째 무한 순회 짜기</button>'
+      : '<p class="infstat">240판과 순회 길을 모두 마치면 열립니다.</p>') + '</section>';
   $('chapterList').innerHTML = html;
 }
 
@@ -1311,7 +1333,7 @@ function startStage(i) {
   duck(false);
   var D = i < 0 && !!daily;
   if (!D) { daily = null; if (!unlocked(chapterOf(i))) return; save.stage = i; store(); }
-  var Z = D ? daily.Z : PUZZLES[i], n = Z[1], reg = [], sol = [], si = D ? 5000 + daily.dn : i;
+  var Z = D ? daily.Z : PUZZLES[i], n = Z[1], reg = [], sol = [], si = D ? (daily.inf ? 90000 + daily.k : 5000 + daily.dn) : i;
   for (var r = 0; r < n; r++) {
     reg.push(Z[3].slice(r * n, r * n + n).split('').map(function (ch) { return ch.charCodeAt(0) - 65; }));
     sol.push(Number(Z[4][r]));
@@ -1356,7 +1378,8 @@ function startStage(i) {
   $('houses').innerHTML = houseOf.map(function (h) {
     return '<span><i style="background-color:' + h.color + ';background-image:' + h.pat[0] + (h.pat[1] ? ';background-size:' + h.pat[1] : '') + '"></i>' + h.name + (h.big ? ' <b>(큰 댁 · 두 명)</b>' : '') + '</span>';
   }).join('');
-  $('stage').innerHTML = D ? '<b>오늘의 순회표</b>' + dayLabel(daily.dn) + ' · ' + n + '×' + n + ' · ' + Z[2]
+  $('stage').innerHTML = D && daily.inf ? '<b>무한 순회 · ' + daily.no + '</b>' + n + '×' + n + ' · ' + (big >= 0 && carts.length ? '수레와 큰 댁' : big >= 0 ? '큰 댁' : '수레') + ' · ' + Z[2]
+    : D ? '<b>오늘의 순회표</b>' + dayLabel(daily.dn) + ' · ' + n + '×' + n + ' · ' + Z[2]
     : '<b class="num">' + (i + 1) + ' / ' + PUZZLES.length + '</b>' + Z[0] + ' · ' + Z[2] + (isCleared(i) ? ' · 완료' : '');
   $('partner').classList.toggle('off', !save.react);
   renderMail();
@@ -1474,9 +1497,9 @@ function conflicts() {
 }
 // 메모 단추: 연습 판 셋이 끝난 4판부터, 연습 안내가 떠 있지 않을 때만 보인다
 function memoSync() {
-  var tm = !!tuto && !!tuto.steps.memo, b = $('memoBtn'), off = !P || (!!tuto && !tm) || save.stage < 3 || done;
+  var tm = !!tuto && !!tuto.steps.memo, b = $('memoBtn'), off = !P || (!!tuto && !tm) || (save.stage < 3 && !daily) || done;
   if (off) memoOn = false;
-  b.hidden = !P || (!!tuto && !tm) || save.stage < 3;
+  b.hidden = !P || (!!tuto && !tm) || (save.stage < 3 && !daily);
   b.classList.toggle('on', memoOn); b.setAttribute('aria-pressed', memoOn ? 'true' : 'false');
   boardEl.classList.toggle('memo', memoOn);
   // 메모를 편 동안 '다시 짜기'는 '메모 지우기'가 된다
@@ -1535,15 +1558,15 @@ function wipNow() {
   if (route || done || tuto || !P || !state.length || !$('play').classList.contains('on')) return;
   var st = state.map(function (row) { return row.join(''); }).join('');
   var nts = notes.map(function (row) { return row.join(''); }).join('');
-  var slot = daily ? 'wipD' : 'wip', wi = daily ? -1 - daily.dn : save.stage;
+  var slot = daily ? (daily.inf ? 'wipI' : 'wipD') : 'wip', wi = daily ? (daily.inf ? -100000 - daily.k : -1 - daily.dn) : save.stage;
   if (!/[12]/.test(st) && !/[12]/.test(nts) && !mistakes && !hintPen && !slips && !daily) { if (save.wip && save.wip.i === save.stage) { save.wip = null; store(); } return; }
   save[slot] = { i: wi, set: SET_VERSION, st: st, nt: nts, m: mistakes, s: slips, h: hintPen, hn: hints, x: extraUsed ? 1 : 0, t: elapsed(), mv: moves };
   store();
 }
-function wipDrop() { clearTimeout(wipT); wipT = null; var slot = daily ? 'wipD' : 'wip'; if (save[slot]) { save[slot] = null; store(); } }
+function wipDrop() { clearTimeout(wipT); wipT = null; var slot = daily ? (daily.inf ? 'wipI' : 'wipD') : 'wip'; if (save[slot]) { save[slot] = null; store(); } }
 function wipBack(i) {
-  var w = daily ? save.wipD : save.wip, n = P.n;
-  if (daily) i = -1 - daily.dn;
+  var w = daily ? (daily.inf ? save.wipI : save.wipD) : save.wip, n = P.n;
+  if (daily) i = daily.inf ? -100000 - daily.k : -1 - daily.dn;
   if (!w || w.i !== i || w.set !== SET_VERSION || tuto || typeof w.st !== 'string' || w.st.length !== n * n || !/^[012]+$/.test(w.st)) return false;
   var okN = typeof w.nt === 'string' && w.nt.length === n * n;
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) { state[r][c] = cartAt(r, c) ? 0 : Number(w.st.charAt(r * n + c)); var wn = okN ? Number(w.nt.charAt(r * n + c)) : 0; notes[r][c] = (wn === 1 || wn === 2) && !cartAt(r, c) ? wn : 0; }
@@ -1867,6 +1890,7 @@ function petals() {
 }
 // 오늘의 순회표를 깼을 때: 그날 처음 푼 기록만 남기고 올린다. 은방울은 본편과 같은 셈
 function finishDaily() {
+  if (daily.inf) { finishInf(); return; }
   petals(); done = true; clearTimeout(idleTimer); wipDrop();
   if (tStart) { tAcc += Date.now() - tStart; tStart = null; }
   var dk = daily.key, took = elapsed(), got = 3 - (slips > 0 ? 1 : 0) - (hintPen > 0 ? 1 : 0), first = !save.daily[dk];
@@ -1886,6 +1910,25 @@ function finishDaily() {
   setTimeout(lbPush, 1500);
   dailyPush().then(function (d) { if (unr) return; if (d && d.me) $('rps').textContent = '오늘 ' + d.me.rank + '위 · 지금까지 ' + d.total + '명이 풀었습니다.' + (d.me.rank === 1 ? ' 내일 처음 화면에 이름이 걸립니다.' : ''); else if (save.lbName && lbOn) $('rps').textContent = '지금은 순위에 닿지 않습니다. 다음에 처음 화면을 열 때 다시 올립니다.'; });
   setTimeout(function () { $('reportVeil').classList.add('on'); $('toChapters').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
+}
+function finishInf() {
+  petals(); done = true; clearTimeout(idleTimer); wipDrop();
+  if (tStart) { tAcc += Date.now() - tStart; tStart = null; }
+  var took = elapsed(), got = 3 - (slips > 0 ? 1 : 0) - (hintPen > 0 ? 1 : 0);
+  save.inf.n = (save.inf.n || 0) + 1; save.inf.b = (save.inf.b || 0) + got; store();
+  var bh = ''; for (var bk = 0; bk < 3; bk++) bh += '<i' + (bk < got ? ' class="got" style="--bd:' + (1.15 + bk * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
+  $('rbells').innerHTML = bh; $('rbells').setAttribute('aria-label', '은방울 ' + got + '개');
+  $('rtime').textContent = '걸린 시간 ' + clock(took);
+  $('rbody').textContent = '무한 순회 ' + daily.no + '번째, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단, 길을 잘못 든 횟수 ' + slips + '번.';
+  $('rmemo').hidden = true; $('rps').hidden = false;
+  $('rps').textContent = '지금까지 무한 순회 ' + save.inf.n + '판 · 은방울 ' + save.inf.b + '개';
+  $('next').hidden = false; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로';
+  for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
+  say('clear'); duck(true);
+  setTimeout(function () { play('clear'); }, 150);
+  setTimeout(lbPush, 1500);
+  setTimeout(function () { $('reportVeil').classList.add('on'); $('next').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 function finish() {
@@ -2328,7 +2371,7 @@ function doHint() {
 $('hint').addEventListener('click', function () {
   if (done) return;
   // 오늘의 순회표: 막시밀리안을 부르면 그날 기록은 순위에서 빠진다. 처음 한 번은 묻고, 6초 안에 한 번 더 누르면 부른다
-  if (daily && !hints && !busy) {
+  if (daily && !daily.inf && !hints && !busy) {
     if (!daily.armed || Date.now() - daily.armed > 6000) { daily.armed = Date.now(); say('dailyHintAsk'); if (!save.react) { $('partner').classList.remove('off'); setTimeout(function () { $('partner').classList.toggle('off', !save.react); }, 6000); } return; }
     daily.armed = 0;
   }
@@ -2344,7 +2387,7 @@ $('overRetry').addEventListener('click', function () { $('overVeil').classList.r
 $('overChapters').addEventListener('click', function () { $('overVeil').classList.remove('on'); go('chapters'); });
 
 // 버튼
-$('resume').addEventListener('click', function () { var rp = routePending(), n = nextOpen(); if (rp >= 0) routeStart(rp); else if (n >= 0) openStage(n); else go('chapters'); });
+$('resume').addEventListener('click', function () { var rp = routePending(), n = nextOpen(); if (rp >= 0) routeStart(rp); else if (n >= 0) openStage(n); else if (infOpen()) startInf(); else go('chapters'); });
 $('openChapters').addEventListener('click', function () { go('chapters'); });
 $('openStory').addEventListener('click', function () {
   var html = '';
@@ -2366,6 +2409,7 @@ $('storyList').addEventListener('click', function (e) {
 $('chapterList').addEventListener('click', function (e) {
   var b = e.target.closest('button[data-stage]'); if (b) { openStage(Number(b.dataset.stage)); return; }
   var rb = e.target.closest('button[data-route]'); if (rb) { routeStart(Number(rb.dataset.route)); return; }
+  if (e.target.closest('button[data-inf]')) { startInf(); return; }
   var rp = e.target.closest('button[data-replay]'); if (rp) playCut(isNaN(Number(rp.dataset.replay)) ? rp.dataset.replay : Number(rp.dataset.replay), function () { go('chapters'); });
 });
 document.querySelectorAll('[data-go]').forEach(function (b) { b.addEventListener('click', function () { go(b.dataset.go); }); });
@@ -2393,7 +2437,7 @@ $('pRules').addEventListener('click', function () {
 $('pSet').addEventListener('click', function () { $('openSettings').click(); });
 $('pChapters').addEventListener('click', function () { pauseOff(); if (route) { routeExit(); return; } go('chapters'); });
 $('pHome').addEventListener('click', function () { pauseOff(); if (route) { routeExit(); } go('home'); });
-$('next').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); openStage(Math.min(save.stage + 1, PUZZLES.length - 1)); });
+$('next').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); if (daily && daily.inf) { $('toChapters').textContent = '일지로 돌아가기'; startInf(); return; } openStage(Math.min(save.stage + 1, PUZZLES.length - 1)); });
 $('cut').addEventListener('click', function (e) { if (e.target.closest('#cutSkip')) { cutEnd(); return; } cutStepOn(false); });
 document.addEventListener('keydown', function (e) { if (cutState && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); cutStepOn(false); } });
 $('toChapters').addEventListener('click', function () {
