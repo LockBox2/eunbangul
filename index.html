@@ -364,7 +364,13 @@ body.routeOn #mail, body.routeOn #tuto, body.routeOn #houses, body.routeOn .boar
 .sheet button.quiet { background: transparent; color: var(--ink); border-color: #b9b09c; }
 .sheet ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
 .toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; }
-.toggle input { width: 22px; height: 22px; accent-color: var(--curtain); }
+/* 스위치는 브라우저 기본 체크 상자 대신 직접 그린다 (어두운 화면 설정에서 체크 표시가 묻혀 안 보였다) */
+.toggle input { -webkit-appearance: none; appearance: none; flex: none; width: 50px; height: 28px; margin: 0; border-radius: 14px; background: #cfc6b0; border: 1px solid #a99d82; position: relative; cursor: pointer; transition: background .15s, border-color .15s; }
+.toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fffdf6; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .15s; }
+.toggle input:checked { background: #d9603f; border-color: #b8472b; }
+.toggle input:checked::after { transform: translateX(22px); }
+.toggle input:focus-visible { outline: 3px solid #2a3266; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .toggle input, .toggle input::after { transition: none; } }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .note { font-size: .78em; color: var(--thread); margin: 0; }
 .sheet .note { color: #6b6456; }
@@ -786,7 +792,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 16:08';
+var BUILD = '11월 21일 16:19';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
