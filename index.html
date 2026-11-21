@@ -924,7 +924,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 08:35';
+var BUILD = '11월 22일 08:45';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1047,10 +1047,24 @@ function music() {
     if (bgm.paused && !document.hidden) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); }
   } catch (e) {}
 }
-document.addEventListener('pointerdown', function () { sfxInit(); if (!bgm || bgm.paused) music(); });
+document.addEventListener('pointerdown', function () { sfxInit(); if (!bgm || bgm.paused || bgmStuck()) bgmKick(); });
+// 다른 앱(카톡 등)에 다녀오면 안드로이드가 음악의 소리 차례를 가져가서, 재생 중이라고 나오는데 소리는 안 나거나 멈춘 채로 남는 일이 있다.
+// 돌아올 때와 화면을 누를 때 음악을 한 번 멈췄다 다시 틀어 소리 차례를 되찾고, 몇 초마다 재생 위치가 실제로 흐르는지도 본다
+var bgmLastT = -1, bgmLastAt = 0;
+function bgmStuck() { return !!bgm && !bgm.paused && bgmLastAt && Date.now() - bgmLastAt > 4000 && Math.abs(bgm.currentTime - bgmLastT) < 0.05; }
+function bgmKick() {
+  if (!save.music || document.hidden) return;
+  if (bgm && !bgm.paused) { try { bgm.pause(); } catch (e) {} }
+  music(); bgmLastAt = 0;
+}
+setInterval(function () {
+  if (!bgm || !save.music || document.hidden || bgm.paused) { bgmLastAt = 0; return; }
+  if (bgmStuck()) { bgmKick(); return; }
+  if (!bgmLastAt || Math.abs(bgm.currentTime - bgmLastT) >= 0.05) { bgmLastT = bgm.currentTime; bgmLastAt = Date.now(); }
+}, 2000);
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) { if (bgm) bgm.pause(); if (actx && actx.state === 'running') { try { actx.suspend(); } catch (e) {} } wipNow(); rWipNow(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
-  else { music(); if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
+  else { bgmKick(); if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} } if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
 });
 // 효과음은 Web Audio로 낸다. 효과음마다 <audio>를 새로 틀면 안드로이드(특히 홈 화면에 깐 앱)가
 // 그걸 새 미디어로 보고 배경 음악을 잠깐씩 멈춘다. Web Audio 소리는 미디어 재생으로 치지 않아 배경 음악을 건드리지 않는다
