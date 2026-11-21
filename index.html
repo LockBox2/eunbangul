@@ -721,36 +721,36 @@ var MEMOS = {
  "브란트": [
   "브란트 댁 하녀 언니가 오늘도 차부터 내주셨습니다. 점검은 그다음이었습니다.",
   "브란트 부인께서 손님들께 표찰을 또 보여 주셨습니다. 침실까지 모시고 가셔서요.",
-  "브란트 댁 하녀 언니 허리가 많이 나았답니다. 이제 돌판은 안 나르신대요."
+  "브란트 댁 하녀 언니 허리가 많이 나았답니다. 받침대가 생긴 뒤로는 무거운 돌판을 나를 일이 없으니까요."
  ],
  "마이어": [
-  "마이어 노마님께서 제 숟가락 소리를 듣고 '맑구먼' 하셨습니다. 돌판 얘기였습니다.",
+  "제가 숟가락으로 돌판을 두드리자 마이어 노마님께서 '소리가 맑구먼' 하셨습니다. 저보다 귀가 밝으십니다.",
   "마이어 노마님은 표찰 날짜를 저보다 먼저 세고 계셨습니다.",
   "마이어 노마님께서 손주 자랑을 하셨습니다. 수도 상회에서 일한답니다. 세 번째 들었습니다."
  ],
  "슈타인": [
   "슈타인 댁 아가씨 혼담 이야기는 이번에도 부엌에서 먼저 들었습니다.",
-  "슈타인 자작부인께서 발난로를 하나 더 물으셨습니다. 누구 선물인지는 말씀을 안 하셨습니다.",
+  "슈타인 자작부인께서 발난로를 하나 더 살 수 있느냐고 물으셨습니다. 누구 선물인지는 말씀을 안 하셨습니다.",
   "슈타인 댁 문지기 아저씨가 이제는 제복만 보고 문을 열어 주십니다."
  ],
  "베커": [
-  "베커 댁 마구간 앞에서 막시밀리안이 한참 서 있었습니다. 자기 자리를 보는 것 같았습니다.",
+  "베커 댁 마구간 앞에서 막시밀리안이 한참 서 있었습니다. 예전에 지내던 칸을 보는 것 같았습니다.",
   "베커 댁 마부 아저씨가 막시밀리안 굴레를 다시 매 주셨습니다. 제가 맨 건 틀렸답니다.",
   "베커 댁 마구간에는 당나귀가 아직 둘 더 있습니다. 지점장님께 말씀드릴까 하다가 말았습니다."
  ],
  "슈미트": [
-  "슈미트 부인께서 소감을 또 들려주셨습니다. 저는 이제 따라 할 수 있습니다.",
+  "슈미트 부인께서 돌판을 써 본 소감을 또 들려주셨습니다. 하도 들어서 저도 외웁니다.",
   "슈미트 남작님 코골이는 요즘 어떠시냐고 여쭈려다 참았습니다.",
-  "슈미트 부인께서 장터 가짜 장수 흉내를 내셨습니다. 부인 소감을 부인보다 잘 외웠더랍니다."
+  "장터에 가짜 돌판 장수가 나타났답니다. 슈미트 부인의 소감을 부인보다 잘 외우고 있더랍니다."
  ],
  "코흐": [
-  "코흐 남작님께서 사냥 가실 때 손난로를 챙기셨답니다. 집사람이 하도 챙기라고 해서라고 하셨답니다.",
+  "코흐 남작님께서 사냥 가실 때 손난로를 챙기셨답니다. 부인이 하도 성화여서 그랬다고, 묻지도 않았는데 말씀하셨답니다.",
   "코흐 댁 부엌에서 육포를 얻었습니다. 사냥철이라 많답니다.",
   "코흐 부인께서 남작님 사냥 이야기를 길게 하셨습니다. 잡은 것보다 놓친 게 더 컸답니다."
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 11:38';
+var BUILD = '11월 21일 12:25';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1394,13 +1394,15 @@ function tutoPlan(i) {
   if (i === 0) {
     var x = row.filter(function (q) { return Math.abs(q[1] - S[1]) === 1; })[0] || row[0];
     var rest = row.filter(function (q) { return q !== x; });
-    return [
+    var plan1 = [
+      { text: '순회표 규칙은 넷입니다. 가로줄마다 한 명, 세로줄마다 한 명, 같은 색 댁마다 한 명. 그리고 관리원끼리는 붙어 서지 않습니다. 먼저 손 쓰는 법부터 익혀 볼게요.', expect: 'read' },
       { text: '관리원이 못 가는 칸에는 X를 해 둡니다. 밝은 칸을 한 번 눌러 보세요.', expect: 'x', cells: [x], ok: function () { return is(x, 1); } },
       { text: (one ? name + '은 한 칸뿐이라 갈 곳이 여기밖에 없어요. ' : '') + '밝은 칸을 꾹 길게 눌러 관리원을 보내세요. 테두리가 다 차오르면 놓입니다.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
       { text: '관리원이 간 가로줄에는 더 못 보내요. 밝은 칸들을 손가락으로 쭉 밀어 X를 칠해 보세요.', expect: 'paint', cells: rest, ok: function () { return rest.every(function (q) { return is(q, 1); }); } },
       { text: '잘못 눌렀을 때는 되돌리기를 누르면 방금 한 일이 취소됩니다. 한 번 눌러 보세요.', expect: 'undo', button: 'undo', ok: function () { return tuto.undone; } },
-      { text: '방금 칠한 X가 사라졌죠. 이제 남은 칸을 채워 보세요. 가로줄, 세로줄, 같은 색 댁마다 관리원 한 명씩입니다.', expect: 'free' }
+      { text: '방금 칠한 X가 사라졌죠. 이제 남은 칸을 채워 보세요. 줄마다, 댁마다 한 명씩, 서로 붙지 않게요. 붙지 않기는 다음 판에서 직접 해 봅니다.', expect: 'free' }
     ];
+    plan1.title = '손 익히기'; return plan1;
   }
   if (i === 1) {
     var ring = []; for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) {
@@ -1408,13 +1410,14 @@ function tutoPlan(i) {
       if ((dr || dc) && qr >= 0 && qc >= 0 && qr < n && qc < n) ring.push([qr, qc]);
     }
     var dg = ring.filter(function (q) { return q[0] !== S[0] && q[1] !== S[1]; })[0] || ring[0];
-    return [
-      { text: (one ? '한 칸짜리 댁부터 찾으면 쉬워요. ' : '') + '밝은 칸을 길게 눌러 관리원을 보내세요.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
-      { text: '관리원끼리는 붙어 있으면 안 돼요. 대각선도 마찬가지예요. 어떻게 되는지 일부러 밝은 칸에 한 명 더 보내 보세요.', expect: 'place', cells: [dg], ok: function () { return is(dg, 2); } },
+    var plan2 = [
+      { text: '이번 판에서는 넷째 규칙, 붙어 서지 않기를 직접 해 봅니다. ' + (one ? '한 칸짜리 댁부터 찾으면 쉬워요. ' : '') + '밝은 칸을 길게 눌러 관리원을 보내세요.', expect: 'place', cells: [S], ok: function () { return is(S, 2); } },
+      { text: '관리원끼리는 붙어 서면 안 된다고 했죠. 대각선도 마찬가지예요. 어떻게 되는지 일부러 밝은 칸에 한 명 더 보내 보세요.', expect: 'place', cells: [dg], ok: function () { return is(dg, 2); } },
       { text: '둘 다 빨갛게 변했죠. 서로 붙어서 그래요. 밝은 칸의 관리원을 한 번 눌러 거두세요.', expect: 'remove', cells: [dg], ok: function () { return !is(dg, 2); } },
       { text: '그래서 관리원 둘레 여덟 칸은 전부 못 가는 칸이에요. 밝은 칸마다 X를 해 보세요. 밀어서 칠해도 됩니다.', expect: 'x', cells: ring, ok: function () { return ring.every(function (q) { return is(q, 1); }); } },
       { text: '잘했어요. 같은 줄, 같은 댁, 붙은 자리. 이 셋만 피하면 됩니다. 빨갛게 변하면 규칙에 걸린 거예요. 남은 칸을 채워 보세요.', expect: 'free' }
     ];
+    plan2.title = '붙어 서지 않기'; return plan2;
   }
   if (P.carts.length && !(P.big >= 0)) {
     var kt = P.carts[0], two = kt.k > 1, around = [], go2 = [];
@@ -1451,6 +1454,7 @@ function tutoStart(i) {
   var first = i <= 2 || (i % CHAPTER_SIZE === 0 && !save.ruleSeen[ruleKey()]);
   var plan = first && !save.tutoSeen[i] && !isCleared(i) ? tutoPlan(i) : null;
   if (!plan) { $('tuto').hidden = true; fitBoard(); return; }
+  if (!plan.title) plan.title = P.big >= 0 ? '큰 댁' : P.carts.length ? '수레 칸' : '막시밀리안 부르기';
   tuto = { stage: i, steps: plan, i: 0, undone: false, hinted: false };
   $('tuto').hidden = false; tutoShow();
 }
@@ -1463,7 +1467,7 @@ function tutoShow() {
   tutoClear();
   var s = tuto.steps[tuto.i], last = s.expect === 'free';
   $('tutoText').textContent = s.text;
-  $('tutoStep').textContent = '연습 ' + (tuto.i + 1) + ' / ' + tuto.steps.length;
+  $('tutoStep').textContent = (tuto.steps.title ? '연습 「' + tuto.steps.title + '」 ' : '연습 ') + (tuto.i + 1) + ' / ' + tuto.steps.length;
   fitBoard();
   $('tutoSkip').hidden = last; $('tutoNext').hidden = s.expect !== 'read'; boardEl.classList.toggle('reading', s.expect === 'read');
   if (last) { save.tutoSeen[tuto.stage] = 1; store(); renderMail(); fitBoard(); return; }
