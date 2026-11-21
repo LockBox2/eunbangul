@@ -782,7 +782,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 12:56';
+var BUILD = '11월 21일 13:24';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -2162,8 +2162,8 @@ $('moveYes').addEventListener('click', function () {
 // 이름을 정한 사람만 은방울 수와 푼 판 수를 올린다. 서버는 구글 시트에 붙인 작은 스크립트다 (기기 번호·이름·은방울·푼 판·때)
 var LB_URL = 'https://script.google.com/macros/s/AKfycbwkR0cBMjrAJm-XEITQAZsnVTfn_9w0bPTUFeEomDs87qg1e7y3u1qcZ8xdjcD1tBX0xA/exec';
 if (TEST) { var lbm = /[?&]lb=([^&]+)/.exec(location.search); if (lbm) LB_URL = decodeURIComponent(lbm[1]); }
-// 서버가 준비될 때까지는 시험 주소(?test=1)에서만 보인다. 준비되면 LB_LIVE를 true로
-var LB_LIVE = false, lbOn = LB_LIVE || TEST;
+// 서버가 말썽이면 LB_LIVE를 false로 돌려 시험 주소(?test=1)에서만 보이게 할 수 있다
+var LB_LIVE = true, lbOn = LB_LIVE || TEST;
 var lbBusy = false, lbBoard = null;
 function lbId() {
   if (!save.lbId) { var a = 'abcdefghijklmnopqrstuvwxyz0123456789', t = ''; for (var i = 0; i < 20; i++) t += a.charAt(Math.floor(Math.random() * a.length)); save.lbId = t; store(); }
