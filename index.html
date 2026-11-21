@@ -660,6 +660,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <label class="toggle" for="optMusic">배경 음악 <input type="checkbox" id="optMusic"></label>
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
     <label class="toggle" for="optPat">댁 무늬 보기 <input type="checkbox" id="optPat"></label>
+    <label class="toggle" for="optThin">댁 경계선 가늘게 <input type="checkbox" id="optThin"></label>
     <label class="toggle" for="optWhy">틀린 이유 알려 주기 <input type="checkbox" id="optWhy"></label>
     <label class="toggle" for="optEasy">편한 순회 (항의 편지 없음) <input type="checkbox" id="optEasy"></label>
     <label class="toggle" for="optOpen" id="optOpenRow" hidden>모든 장 열어 두기 (시험용) <input type="checkbox" id="optOpen"></label>
@@ -820,7 +821,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 22:04';
+var BUILD = '11월 21일 22:05';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -836,7 +837,7 @@ function bellsOf(i) { return isCleared(i) ? ((save.bells && save.bells[i]) || 1)
 function bellsIn(c) { var t = (save.routes && save.routes[c]) || 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE && i < PUZZLES.length; i++) t += bellsOf(i); return t; }
 function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); if (save.routes) for (var k in save.routes) t += save.routes[k] || 0; return t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, pat: true };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, pat: true, thinWalls: false };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -1340,9 +1341,13 @@ function wallsSvg(n, reg, big) {
   for (r = 1; r < n; r++) for (c = 0; c < n; c++) if (reg[r - 1][c] !== reg[r][c]) { d += 'M' + c + ' ' + r + 'h1'; mark(c, r, 'h'); mark(c + 1, r, 'h'); }
   var w = n <= 5 ? 0.085 : n === 6 ? 0.095 : n === 7 ? 0.105 : n === 8 ? 0.115 : 0.125;
   return '<svg class="walls" viewBox="0 0 ' + n + ' ' + n + '" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-    '<path d="' + d + '" stroke="#1c120e" stroke-width="' + (w * 1.45) + '"/>' +
-    '<path d="' + d + '" stroke="#d9dde8" stroke-width="' + (w * 0.62) + '"/>' +
-    '<path d="' + d + '" stroke="#ffffff" stroke-opacity=".75" stroke-width="' + (w * 0.2) + '" transform="translate(0 ' + (-w * 0.16) + ')"/>' + bigMark(n, reg, big) + '</svg>';
+    // 가는 경계선: 설정에서 고른 사람만. 테두리를 끄지는 않는다 (무늬까지 끄면 비슷한 색 댁의 경계가 사라진다)
+    (save.thinWalls
+      ? '<path d="' + d + '" stroke="#1c120e" stroke-opacity=".9" stroke-width="' + (w * 0.66) + '"/>' +
+        '<path d="' + d + '" stroke="#eef0f6" stroke-width="' + (w * 0.28) + '"/>'
+      : '<path d="' + d + '" stroke="#1c120e" stroke-width="' + (w * 1.45) + '"/>' +
+        '<path d="' + d + '" stroke="#d9dde8" stroke-width="' + (w * 0.62) + '"/>' +
+        '<path d="' + d + '" stroke="#ffffff" stroke-opacity=".75" stroke-width="' + (w * 0.2) + '" transform="translate(0 ' + (-w * 0.16) + ')"/>') + bigMark(n, reg, big) + '</svg>';
 }
 // 큰 댁 표시: 그 댁의 맨 윗줄 맨 왼쪽 칸 모서리에 숫자 2
 function bigMark(n, reg, big) {
@@ -2264,7 +2269,7 @@ $('toChapters').addEventListener('click', function () {
   else go('chapters');
 });
 $('openSettings').addEventListener('click', function () {
-  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
+  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optThin').checked = !!save.thinWalls; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
@@ -2273,6 +2278,10 @@ $('optSound').addEventListener('change', function () { save.sound = this.checked
 $('optBig').addEventListener('change', function () { save.big = this.checked; store(); document.body.classList.toggle('big', save.big); });
 $('optEasy').addEventListener('change', function () { save.easy = this.checked; store(); });
 $('optWhy').addEventListener('change', function () { save.why = this.checked; store(); });
+$('optThin').addEventListener('change', function () {
+  save.thinWalls = this.checked; store();
+  var old = boardEl.querySelector('svg.walls'); if (P && old) { old.remove(); boardEl.insertAdjacentHTML('beforeend', wallsSvg(P.n, P.reg, P.big)); }
+});
 $('optPat').addEventListener('change', function () { save.pat = this.checked; store(); document.body.classList.toggle('noPat', !this.checked); });
 $('optOpenRow').hidden = !TEST;
 $('optOpen').addEventListener('change', function () { save.openAll = this.checked; store(); renderHome(); });
