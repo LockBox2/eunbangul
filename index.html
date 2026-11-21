@@ -815,7 +815,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 19:41';
+var BUILD = '11월 21일 20:01';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1404,7 +1404,8 @@ function render() {
   memoSync();
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
     var el = cellEl(r, c), s = state[r][c], h = houseOf[P.reg[r][c]].name;
-    if (notes[r] && notes[r][c] && (s !== 0 || (sweep && shut[r][c]))) notes[r][c] = 0;
+    // 메모 X는 진짜 관리원이 놓여도 남긴다 (지우면 못 가는 칸이 빈칸처럼 보인다). 못 서게 된 자리의 메모 관리원만 치운다
+    if (notes[r] && notes[r][c] && (s !== 0 || (sweep && shut[r][c] && notes[r][c] === 2))) notes[r][c] = 0;
     var nt = notes[r] && notes[r][c] ? notes[r][c] : 0;
     if (el.classList.contains('cart')) {
       var ck = cartAt(r, c);
