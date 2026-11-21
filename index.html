@@ -34,6 +34,7 @@
 [hidden] { display: none !important; }
 /* 맨 위에서 아래로 끌었을 때 브라우저가 화면을 새로 고치지 않게 한다 (일지를 올리다가, 판에서 X를 밀다가 새로 고쳐지는 일 방지) */
 html, body { height: 100%; margin: 0; overscroll-behavior-y: none; }
+html.noscroll, html.noscroll body { overflow: hidden; }
 body {
   background: var(--curtain) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23e4e8f0' stroke-opacity='.05' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M-10 100C30 60 50 120 90 80S130 30 150 50'/%3E%3Cpath d='M40 88c-2-10 4-16 12-16-1 9-5 14-12 16zM88 80c8-4 15-1 18 6-8 3-14 1-18-6zM112 52c-6-7-5-15 1-20 5 7 4 14-1 20z'/%3E%3Cpath d='M-10 30C10 10 30 40 60 20'/%3E%3Cpath d='M24 22c0-8 5-12 11-12 0 7-4 11-11 12z'/%3E%3C/g%3E%3C/svg%3E");
   color: var(--silver); font-family: var(--body);
@@ -869,7 +870,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 05:00';
+var BUILD = '11월 22일 08:02';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1003,6 +1004,7 @@ function play(name) {
 
 // 화면 바꾸기
 function go(view) {
+  if (view !== 'play') document.documentElement.classList.remove('noscroll');
   if (paused) { paused = false; $('play').classList.remove('paused'); $('pauseVeil').classList.remove('on'); }
   if (view !== 'play') { wipNow(); rWipNow(); routeExit(); if (daily) { daily = null; $('toChapters').textContent = '일지로 돌아가기'; } }
   ['home', 'chapters', 'play', 'cut'].forEach(function (v) { $(v).classList.toggle('on', v === view); });
@@ -1396,6 +1398,8 @@ function startStage(i) {
   render(); say(big >= 0 ? 'freshBig' : carts.length ? 'freshCart' : 'fresh', { n: m, h: big >= 0 ? houseOf[big].name : '' });
   if (D) { tutoClear(); tuto = null; $('tuto').hidden = true; fitBoard(); } else tutoStart(i);
   armIdle();
+  // 글꼴·그림이 다 자리 잡은 뒤 한 번 더 맞춘다 (판 크기는 줄기만 하니 여러 번 불러도 흔들리지 않는다)
+  setTimeout(fitBoard, 80); setTimeout(fitBoard, 600);
   if (wipBack(i)) { render(); renderMail(); say('resume'); }
   if (tuto && tuto.steps.memo) { save.tutoSeen.memo = 1; store(); }
   memoSync();
@@ -1619,7 +1623,7 @@ function fitBoard() {
   partner.classList.toggle('squeezed', !!tuto); boardEl.style.width = '';
   if (tuto && !band.hidden) {
     // 연습 내내 판 크기가 변하지 않게, 가장 긴 안내문 높이로 띠를 잡아 둔다
-    var key = window.innerWidth + 'x' + window.innerHeight;
+    var key = String(window.innerWidth);
     if (tuto.fitKey !== key) {
       var cur = $('tutoText').textContent, skipWas = $('tutoSkip').hidden, nextWas = $('tutoNext').hidden, h = 0;
       band.style.minHeight = ''; $('tutoSkip').hidden = false; $('tutoNext').hidden = false;
@@ -1633,11 +1637,14 @@ function fitBoard() {
   var over = document.documentElement.scrollHeight - window.innerHeight, w = boardEl.getBoundingClientRect().width;
   if (over > 0) w = Math.max(200, Math.floor(w - over));
   // 한 판 안에서는 판 크기를 바꾸지 않는다. 그 판에서 잰 가장 작은 크기로 묶어 둔다
-  var vk = window.innerWidth + 'x' + window.innerHeight;
+  // 높이는 열쇠에 넣지 않는다: 브라우저 주소창·아래 막대가 숨었다 나타날 때마다 높이가 바뀌어 판이 커졌다 작아졌다 했다
+  var vk = String(window.innerWidth);
   if (P.fitKey !== vk) { P.fitKey = vk; P.fitW = w; }
   P.fitW = Math.min(P.fitW, w);
   boardEl.style.width = Math.floor(P.fitW) + 'px';
   mail.hidden = mailWas;
+  // 판 화면이 한 화면에 다 들어가면 쓸어도 페이지가 밀리지 않게 막는다 (밀리면 브라우저 막대가 숨으며 화면 높이가 또 바뀐다)
+  document.documentElement.classList.toggle('noscroll', document.documentElement.scrollHeight - window.innerHeight <= 1);
 }
 window.addEventListener('resize', fitBoard);
 // 연습: 첫 세 판에서 한 동작씩 시킨다. 시킨 동작만 받고, 하면 다음으로 넘어간다
