@@ -825,7 +825,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 22:07';
+var BUILD = '11월 21일 22:11';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1351,10 +1351,9 @@ function wallsSvg(n, reg, big) {
     (wallMode() === 'none' ? '' :
     wallMode() === 'thin'
       ? '<path d="' + d + '" stroke="#1c120e" stroke-opacity=".9" stroke-width="' + (w * 0.66) + '"/>' +
-        '<path d="' + d + '" stroke="#eef0f6" stroke-width="' + (w * 0.28) + '"/>'
+        '<path d="' + d + '" stroke="#c9cfdd" stroke-width="' + (w * 0.28) + '"/>'
       : '<path d="' + d + '" stroke="#1c120e" stroke-width="' + (w * 1.45) + '"/>' +
-        '<path d="' + d + '" stroke="#d9dde8" stroke-width="' + (w * 0.62) + '"/>' +
-        '<path d="' + d + '" stroke="#ffffff" stroke-opacity=".75" stroke-width="' + (w * 0.2) + '" transform="translate(0 ' + (-w * 0.16) + ')"/>') + bigMark(n, reg, big) + '</svg>';
+        '<path d="' + d + '" stroke="#c9cfdd" stroke-width="' + (w * 0.62) + '"/>') + bigMark(n, reg, big) + '</svg>';
 }
 // 큰 댁 표시: 그 댁의 맨 윗줄 맨 왼쪽 칸 모서리에 숫자 2
 function bigMark(n, reg, big) {
