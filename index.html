@@ -477,6 +477,18 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 #home .stagebox { position: relative; flex: 1; min-height: 240px; overflow: hidden; }
 #home .ver { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: rgba(255,250,235,.85); text-shadow: 0 1px 2px rgba(0,0,0,.7); pointer-events: none; }
 #home .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 80%; }
+/* 처음 화면 그림 위에 얹는 작은 움직임: 찻잔 김, 햇빛 속 먼지, 햇빛 숨쉬기. 그림과 같은 자리·크기로 맞춘다 (JS가 위치를 잡는다) */
+#home .fx { position: absolute; z-index: 1; pointer-events: none; }
+#home .fx .steam { position: absolute; left: 77.6%; top: 70.2%; width: 6.6%; height: 8.6%; overflow: visible; filter: blur(1.2px); }
+#home .fx .steam path { fill: none; stroke: #fffdf6; stroke-width: 3.2; stroke-linecap: round; opacity: 0; stroke-dasharray: 120; stroke-dashoffset: 120; animation: steamUp 5.4s ease-in-out infinite; }
+#home .fx .steam .w2 { animation-delay: 1.8s; stroke-width: 2.6; }
+#home .fx .steam .w3 { animation-delay: 3.6s; stroke-width: 2.4; }
+@keyframes steamUp { 0% { opacity: 0; stroke-dashoffset: 120; transform: translateY(6%); } 25% { opacity: .55; } 70% { opacity: .35; } 100% { opacity: 0; stroke-dashoffset: 0; transform: translateY(-14%); } }
+#home .fx .mote { position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: radial-gradient(#fffbe8, rgba(255,240,200,0)); opacity: 0; animation: moteDrift 16s ease-in-out infinite; }
+@keyframes moteDrift { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: .9; } 80% { opacity: .7; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+#home .fx .sunglow { position: absolute; left: 38%; top: 36%; width: 62%; height: 36%; background: radial-gradient(ellipse at 30% 45%, rgba(255,236,190,.55), rgba(255,236,190,0) 70%); mix-blend-mode: soft-light; animation: sunBreath 9s ease-in-out infinite; }
+@keyframes sunBreath { 0%, 100% { opacity: .25; } 50% { opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { #home .fx { display: none; } }
 #home .logo { position: absolute; left: 0; right: 0; top: 8px; margin: 0; display: flex; justify-content: center; pointer-events: none; }
 #home .logo img { width: min(88%, 380px); height: auto; display: block; filter: drop-shadow(0 0 5px #f8e6d8) drop-shadow(0 0 10px #f8e6d8) drop-shadow(0 3px 4px rgba(60,30,30,.25)); }
 #home .drawer {
@@ -502,6 +514,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 <!-- 시작 -->
 <main class="view on" id="home">
   <div class="stagebox">
+    <div class="fx" id="homeFx" aria-hidden="true"><div class="sunglow"></div><svg class="steam" viewBox="0 0 60 90"><path class="w1" d="M30 88 C 22 70, 38 58, 29 42 S 34 18, 28 4"/><path class="w2" d="M24 88 C 16 72, 30 60, 22 44 S 26 22, 20 8"/><path class="w3" d="M36 88 C 44 72, 30 60, 38 46 S 33 22, 40 8"/></svg><i class="mote" style="left:58.5%;top:44.2%;--s:2px;--dx:-5px;--dy:-25px;animation-duration:18.9s;animation-delay:-1.4s"></i><i class="mote" style="left:67.9%;top:41.0%;--s:2px;--dx:2px;--dy:-25px;animation-duration:16.9s;animation-delay:-1.4s"></i><i class="mote" style="left:70.8%;top:66.5%;--s:2px;--dx:3px;--dy:-19px;animation-duration:18.7s;animation-delay:-11.7s"></i><i class="mote" style="left:91.8%;top:41.3%;--s:2.5px;--dx:1px;--dy:-16px;animation-duration:20.7s;animation-delay:-5.8s"></i><i class="mote" style="left:70.6%;top:59.1%;--s:2.5px;--dx:-5px;--dy:-16px;animation-duration:13.9s;animation-delay:-11.4s"></i><i class="mote" style="left:45.2%;top:41.7%;--s:3.5px;--dx:10px;--dy:-18px;animation-duration:14.9s;animation-delay:-13.6s"></i><i class="mote" style="left:89.1%;top:50.1%;--s:2.5px;--dx:-15px;--dy:-21px;animation-duration:15.2s;animation-delay:-3.6s"></i><i class="mote" style="left:67.3%;top:49.6%;--s:2px;--dx:-14px;--dy:-18px;animation-duration:17.0s;animation-delay:-12.2s"></i><i class="mote" style="left:80.6%;top:44.3%;--s:2px;--dx:10px;--dy:-16px;animation-duration:17.4s;animation-delay:-0.8s"></i><i class="mote" style="left:86.6%;top:48.8%;--s:3.5px;--dx:-16px;--dy:-24px;animation-duration:19.3s;animation-delay:-11.9s"></i><i class="mote" style="left:55.8%;top:59.5%;--s:3px;--dx:5px;--dy:-8px;animation-duration:13.6s;animation-delay:-14.6s"></i></div>
     <img class="scene" src="img/office.webp" alt="지점장실. 책상에 앉은 안나의 뒷모습 너머로 리나가 순회표를 들고 보고하고, 창밖에서는 막시밀리안이 풀을 뜯는다." width="900" height="1600">
     <h1 class="logo"><img src="img/logo.webp" alt="은방울 관리일지" width="1000" height="333"></h1>
     <span class="ver num" id="homeVer" aria-hidden="true"></span>
@@ -910,7 +923,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 08:21';
+var BUILD = '11월 22일 08:25';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1055,7 +1068,15 @@ function go(view) {
   if (view === 'chapters') renderChapters();
   window.scrollTo(0, 0);
 }
+// 그림이 화면을 덮는 자리(object-fit: cover, 50% 80%)를 계산해 효과 층을 같은 자리에 둔다
+function homeFxFit() {
+  var box = document.querySelector('#home .stagebox'), fx = $('homeFx'); if (!box || !fx) return;
+  var W = box.clientWidth, H = box.clientHeight, k = Math.max(W / 900, H / 1600), w = 900 * k, h = 1600 * k;
+  fx.style.width = w + 'px'; fx.style.height = h + 'px'; fx.style.left = ((W - w) * 0.5) + 'px'; fx.style.top = ((H - h) * 0.8) + 'px';
+}
+window.addEventListener('resize', homeFxFit);
 function renderHome() {
+  setTimeout(homeFxFit, 0);
   $('homeVer').textContent = '시험판 ' + BUILD;
   $('homeCount').textContent = households();
   var n = nextOpen(), rp = routePending();
