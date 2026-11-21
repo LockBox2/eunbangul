@@ -167,6 +167,8 @@ button:disabled { opacity: .35; cursor: default; }
 @keyframes memoNudge { 50% { transform: scale(1.18); box-shadow: 0 3px 0 #10142c, 0 0 0 5px rgba(255,214,150,.7); } }
 #play .actions #reset.memoClear { color: #ffc4ad; border-color: #e87a55; }
 #reset.memoClear svg { color: #ff9a76; }
+/* 댁 무늬 끄기: 색만 남긴다. 판 칸에 직접 적힌 무늬보다 세게 걸어야 한다 */
+body.noPat .board .cell:not(.cart) { background-image: none !important; }
 .board.memo { outline: 3px dashed rgba(255,214,150,.9); outline-offset: 4px; }
 body.routeOn #memoBtn { display: none; }
 @media (prefers-reduced-motion: reduce) { #play .bar #memoBtn.nudge { animation: none; } }
@@ -657,6 +659,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <label class="toggle" for="optSound">효과음 <input type="checkbox" id="optSound"></label>
     <label class="toggle" for="optMusic">배경 음악 <input type="checkbox" id="optMusic"></label>
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
+    <label class="toggle" for="optPat">댁 무늬 보기 <input type="checkbox" id="optPat"></label>
     <label class="toggle" for="optWhy">틀린 이유 알려 주기 <input type="checkbox" id="optWhy"></label>
     <label class="toggle" for="optEasy">편한 순회 (항의 편지 없음) <input type="checkbox" id="optEasy"></label>
     <label class="toggle" for="optOpen" id="optOpenRow" hidden>모든 장 열어 두기 (시험용) <input type="checkbox" id="optOpen"></label>
@@ -698,10 +701,10 @@ var FAMILIES = ["렌츠", "아들러", "하겐", "린덴", "에버하르트", "�
 var COLORS = ['#f7e0a0', '#c2e2a6', '#a8d4f0', '#cfbcf0', '#f6b5ae', '#f8c68c', '#9fdfc8', '#bcc7e2', '#f3c3de'];
 var PATTERNS = [
   ['', ''],
-  ['repeating-linear-gradient(45deg, rgba(26,32,56,.07) 0 2px, transparent 2px 9px)', ''],
-  ['radial-gradient(rgba(26,32,56,.11) 1.2px, transparent 1.7px)', '9px 9px'],
-  ['repeating-linear-gradient(0deg, rgba(26,32,56,.06) 0 2px, transparent 2px 8px)', ''],
-  ['repeating-linear-gradient(-45deg, rgba(26,32,56,.07) 0 2px, transparent 2px 9px)', '']
+  ['repeating-linear-gradient(45deg, rgba(26,32,56,.045) 0 2px, transparent 2px 9px)', ''],
+  ['radial-gradient(rgba(26,32,56,.07) 1.2px, transparent 1.7px)', '9px 9px'],
+  ['repeating-linear-gradient(0deg, rgba(26,32,56,.04) 0 2px, transparent 2px 8px)', ''],
+  ['repeating-linear-gradient(-45deg, rgba(26,32,56,.045) 0 2px, transparent 2px 9px)', '']
 ];
 var UNLOCK_AT = 16;
 var LINES = {
@@ -817,7 +820,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 20:04';
+var BUILD = '11월 21일 22:04';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -833,7 +836,7 @@ function bellsOf(i) { return isCleared(i) ? ((save.bells && save.bells[i]) || 1)
 function bellsIn(c) { var t = (save.routes && save.routes[c]) || 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE && i < PUZZLES.length; i++) t += bellsOf(i); return t; }
 function bellsAll() { var t = 0; for (var i = 0; i < PUZZLES.length; i++) t += bellsOf(i); if (save.routes) for (var k in save.routes) t += save.routes[k] || 0; return t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, pat: true };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -2261,7 +2264,7 @@ $('toChapters').addEventListener('click', function () {
   else go('chapters');
 });
 $('openSettings').addEventListener('click', function () {
-  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
+  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
@@ -2270,6 +2273,7 @@ $('optSound').addEventListener('change', function () { save.sound = this.checked
 $('optBig').addEventListener('change', function () { save.big = this.checked; store(); document.body.classList.toggle('big', save.big); });
 $('optEasy').addEventListener('change', function () { save.easy = this.checked; store(); });
 $('optWhy').addEventListener('change', function () { save.why = this.checked; store(); });
+$('optPat').addEventListener('change', function () { save.pat = this.checked; store(); document.body.classList.toggle('noPat', !this.checked); });
 $('optOpenRow').hidden = !TEST;
 $('optOpen').addEventListener('change', function () { save.openAll = this.checked; store(); renderHome(); });
 // 기록 옮기기: 진행 기록을 글자 한 줄로 내보내고, 다른 브라우저에서 그 글자로 되살린다 (서버 없이)
@@ -2393,6 +2397,7 @@ $('wipeNo').addEventListener('click', function () { $('wipeAsk').hidden = true; 
 $('wipeYes').addEventListener('click', function () { save.stage = 0; save.cleared = []; save.memoSeen = {}; save.ruleSeen = {}; save.cutSeen = {}; save.tutoSeen = {}; save.bells = {}; save.best = {}; save.routes = {}; save.wip = null; save.wipR = null; store(); $('wipeAsk').hidden = true; $('settingsVeil').classList.remove('on'); renderHome(); });
 
 load();
+document.body.classList.toggle('noPat', save.pat === false);
 // 웹앱으로 올렸을 때: 한 번 받은 뒤에는 인터넷 없이도 열린다
 if ('serviceWorker' in navigator && location.protocol === 'https:' || location.hostname === 'localhost') { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
 document.body.classList.toggle('big', save.big);
