@@ -154,7 +154,12 @@ button:disabled { opacity: .35; cursor: default; }
 }
 .cell[data-s="2"]::before { opacity: 1; }
 /* 메모: 후보 자리에 찍어 두는 점. 채점과 무관하다 */
-.cell .dot { font-size: 0; width: 24%; height: 24%; border-radius: 50%; background: #2a3266; opacity: .7; box-shadow: 0 0 0 2px rgba(255,253,246,.55); animation: draw .14s ease-out; }
+.cell .x.memo { opacity: 1; }
+.cell .x.memo::before, .cell .x.memo::after { background: #c2411f; width: 3px; box-shadow: 0 0 0 1.5px rgba(255,253,246,.8); }
+.cell .piece.memo, .cell .piece.memo.set { opacity: .5; filter: saturate(.35) brightness(1.12); animation: memoWave 1.8s ease-in-out infinite; }
+.cell[data-n="2"] { box-shadow: inset 0 0 0 3px rgba(194,65,31,.75); }
+@keyframes memoWave { 50% { opacity: .28; } }
+@media (prefers-reduced-motion: reduce) { .cell .piece.memo, .cell .piece.memo.set { animation: none; } }
 #play .bar #memoBtn { padding: 8px 9px; }
 #play .bar #memoBtn svg { width: 22px; height: 22px; display: block; }
 #play .bar #memoBtn.on { background: linear-gradient(#e87a55, #c9502f); border-color: #fff3d6; box-shadow: 0 3px 0 #7a2b16, 0 0 0 3px rgba(255,214,150,.45), 0 6px 10px rgba(0,0,0,.4); }
@@ -634,7 +639,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
       <li id="ruleCart" hidden>수레 칸 둘레 여덟 칸에는 수레에 적힌 숫자만큼만 보냅니다. 수레 칸에는 못 섭니다</li>
     </ul>
     <p>칸을 한 번 누르면 못 가는 칸입니다. 관리원은 칸을 길게 눌러서 보냅니다. 빠르게 두 번 눌러도 됩니다. 손가락으로 밀면 못 가는 칸을 이어서 칠하고, X에서 시작해 밀면 X를 이어서 지웁니다.</p>
-    <p>4판부터는 위의 연필로 메모를 펼 수 있습니다. 펴 둔 동안 칸을 누르면 X 대신 점이 찍힙니다. 점은 헷갈리는 자리를 적어 두는 표시일 뿐, 은방울이나 항의 편지와는 상관없습니다.</p>
+    <p>4판부터는 위의 연필로 메모를 펼 수 있습니다. 펴 둔 동안은 X도 관리원도 연습으로만 적힙니다. 붉은 X와 흐릿하게 일렁이는 관리원이 메모입니다. 메모는 맞는지 틀리는지 알려 주지 않고, 은방울이나 항의 편지와도 상관없습니다. 진짜로 보내려면 메모를 접고 놓으세요.</p>
     <p>2장부터는 맞지 않는 칸에 보내면 그 댁에서 항의 편지가 옵니다. 세 통이 쌓이면 순회표를 다시 짭니다.</p>
     <button type="button" data-close="rulesVeil">알겠습니다</button>
   </div>
@@ -704,9 +709,9 @@ var LINES = {
   hint: ['막시밀리안이 {h} 앞에 섰어요.'],
   clear: ['다 돌았습니다, 지점장님.'],
   fresh: ['새 순회표예요. {n}댁입니다.'],
-  memoIntro: ['위의 연필이 메모예요. 켜고 누르면 X 대신 점이 찍혀요. 헷갈리는 자리에 써 보세요.'],
-  memoOn: ['메모를 폈어요. 누르면 점이 찍혀요. 관리원은 평소처럼 길게 누르면 가요.'],
-  memoOff: ['메모를 접었어요. 이제 누르면 다시 X예요.'],
+  memoIntro: ['위의 연필이 메모예요. 켜 두면 X도 관리원도 연습 삼아 적어 볼 수 있어요. 틀려도 편지는 안 와요.'],
+  memoOn: ['메모를 폈어요. 지금 놓는 건 전부 연습이에요. 진짜로 보내려면 메모를 접고 놓으세요.'],
+  memoOff: ['메모를 접었어요. 이제 놓는 건 진짜예요.'],
   resume: ['아까 하던 데서 이어서 해요.', '놓아 두신 그대로예요. 이어서 가요.'],
   freshBig: ['큰 댁이 있는 판이에요. 그 댁엔 두 사람을 보내 주세요.', '오늘은 {h}에 두 사람이 가요. 모두 {n}댁입니다.'],
   houseBig: ['{h}는 두 사람이면 돼요. 셋은 많아요.'],
@@ -807,7 +812,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 19:25';
+var BUILD = '11월 21일 19:28';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1393,7 +1398,7 @@ function render() {
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
     var el = cellEl(r, c), s = state[r][c], h = houseOf[P.reg[r][c]].name;
     if (notes[r] && notes[r][c] && (s !== 0 || shut[r][c])) notes[r][c] = 0;
-    var nt = notes[r] && notes[r][c] ? 1 : 0;
+    var nt = notes[r] && notes[r][c] ? notes[r][c] : 0;
     if (el.classList.contains('cart')) {
       var ck = cartAt(r, c);
       el.classList.toggle('bad', !!cf.cartBad[r + ',' + c]); el.classList.toggle('full', !!cf.full[r + ',' + c]);
@@ -1403,12 +1408,13 @@ function render() {
     el.classList.toggle('bad', !!cf.bad[r + ',' + c]);
     if (el.dataset.s !== String(s) || el.dataset.n !== String(nt)) {
       el.dataset.s = s; el.dataset.n = nt;
-      if (nt) el.innerHTML = '<span class="dot">메모</span>';
+      if (nt === 2) el.innerHTML = '<span class="piece memo" style="background-image:url(img/staff-' + P.staff[r % 9] + '.webp)"></span>';
+      else if (nt === 1) el.innerHTML = '<span class="x memo">메모 못 감</span>';
       else if (s === 1) el.innerHTML = '<span class="x">못 감</span>';
       else if (s === 2) el.innerHTML = '<span class="piece" style="background-image:url(img/staff-' + P.staff[r % 9] + '.webp)"></span>';
       else el.innerHTML = '';
     }
-    el.setAttribute('aria-label', (r + 1) + '행 ' + (c + 1) + '열, ' + h + ', ' + (s === 2 ? '관리원' : s === 1 ? '못 감' : nt ? '메모' : '빈칸'));
+    el.setAttribute('aria-label', (r + 1) + '행 ' + (c + 1) + '열, ' + h + ', ' + (s === 2 ? '관리원' : s === 1 ? '못 감' : nt === 2 ? '메모로 세워 본 관리원' : nt ? '메모로 적은 못 감' : '빈칸'));
   }
   wipSoon();
   return cf;
@@ -1423,7 +1429,7 @@ function wipNow() {
   if (route || done || tuto || !P || !state.length || !$('play').classList.contains('on')) return;
   var st = state.map(function (row) { return row.join(''); }).join('');
   var nts = notes.map(function (row) { return row.join(''); }).join('');
-  if (!/[12]/.test(st) && !/1/.test(nts) && !mistakes && !hintPen && !slips) { if (save.wip && save.wip.i === save.stage) { save.wip = null; store(); } return; }
+  if (!/[12]/.test(st) && !/[12]/.test(nts) && !mistakes && !hintPen && !slips) { if (save.wip && save.wip.i === save.stage) { save.wip = null; store(); } return; }
   save.wip = { i: save.stage, set: SET_VERSION, st: st, nt: nts, m: mistakes, s: slips, h: hintPen, hn: hints, x: extraUsed ? 1 : 0, t: elapsed(), mv: moves };
   store();
 }
@@ -1432,7 +1438,7 @@ function wipBack(i) {
   var w = save.wip, n = P.n;
   if (!w || w.i !== i || w.set !== SET_VERSION || tuto || typeof w.st !== 'string' || w.st.length !== n * n || !/^[012]+$/.test(w.st)) return false;
   var okN = typeof w.nt === 'string' && w.nt.length === n * n;
-  for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) { state[r][c] = cartAt(r, c) ? 0 : Number(w.st.charAt(r * n + c)); notes[r][c] = okN && w.nt.charAt(r * n + c) === '1' && !cartAt(r, c) ? 1 : 0; }
+  for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) { state[r][c] = cartAt(r, c) ? 0 : Number(w.st.charAt(r * n + c)); var wn = okN ? Number(w.nt.charAt(r * n + c)) : 0; notes[r][c] = (wn === 1 || wn === 2) && !cartAt(r, c) ? wn : 0; }
   mistakes = Math.max(0, Math.min(MAX_MAIL - 1, w.m | 0)); slips = Math.max(0, w.s | 0); hintPen = Math.max(0, w.h | 0); hints = Math.max(0, w.hn | 0);
   extraUsed = !!w.x; moves = Math.max(0, w.mv | 0); tAcc = Math.max(0, w.t | 0) * 1000; tStart = Date.now();
   return true;
@@ -1632,13 +1638,20 @@ function tap(r, c) {
   if (!tutoOk('tap', r, c)) return;
   var now = Date.now(), s = state[r][c], quick = lastTap && lastTap.r === r && lastTap.c === c && now - lastTap.t < 520;
   lastTap = { r: r, c: c, t: now };
+  if (memoOn) {
+    // 메모를 편 동안은 진짜 X와 진짜 관리원을 건드리지 않는다. 빈칸에 메모만 적고 지운다
+    if (s !== 0) return;
+    if (notes[r][c] === 1 && quick) { lastTap = null; tryPlace(r, c); return; }
+    snapshot(); notes[r][c] = notes[r][c] ? 0 : 1; afterChange(null, null); return;
+  }
   if (s === 1 && quick) { lastTap = null; tryPlace(r, c); return; }
-  if (memoOn && s === 0) { snapshot(); notes[r][c] = notes[r][c] ? 0 : 1; afterChange(null, null); return; }
   snapshot(); state[r][c] = s === 0 ? 1 : 0; moves++; afterChange(null, null);
 }
 function tryPlace(r, c) {
   if (done || busy || state[r][c] === 2 || cartAt(r, c)) return;
   if (!tutoOk('place', r, c)) return;
+  // 메모를 편 동안 길게 누르면 진짜로 보내지 않고 '세워 본' 표시만 한다. 채점하지 않고, 규칙 검사도 하지 않는다
+  if (memoOn) { if (state[r][c] !== 0) return; snapshot(); notes[r][c] = notes[r][c] === 2 ? 0 : 2; play('place'); afterChange(null, null); return; }
   if (livesOn() && P.sol[r] !== c) { wrong(r, c); return; }
   // 편지가 안 오는 1장과 편한 순회에서도 틀린 자리에 세운 횟수는 센다 (은방울이 깎인다)
   // 하나를 잘못 세우면 그걸 믿고 줄줄이 잘못 세우게 되니, 판 위에 틀린 관리원이 이미 있는 동안은 더 세지 않는다 (한 번 헤맨 걸 한 번으로 친다)
@@ -2066,15 +2079,17 @@ boardEl.addEventListener('pointermove', function (e) {
     if (at[0] === drag.start[0] && at[1] === drag.start[1]) return;
     if (drag.held) return;
     if (!tutoOk('paint', drag.start[0], drag.start[1])) return;
+    if (memoOn && state[drag.start[0]][drag.start[1]] !== 0) { clearTimeout(drag.timer); holdOff(); drag.painting = true; drag.memo = true; drag.noop = true; return; }
     clearTimeout(drag.timer); holdOff(); drag.painting = true; snapshot();
     // X에서 시작해 밀면 지우기, 빈칸에서 시작하면 칠하기. 연습 중에는 칠하기만 한다
     drag.memo = memoOn && state[drag.start[0]][drag.start[1]] === 0 && !cartAt(drag.start[0], drag.start[1]);
     drag.erase = state[drag.start[0]][drag.start[1]] === 1 && (!tuto || tuto.steps[tuto.i].expect === 'free');
-    if (drag.memo) { drag.erase = !!notes[drag.start[0]][drag.start[1]]; notes[drag.start[0]][drag.start[1]] = drag.erase ? 0 : 1; render(); }
+    if (drag.memo) { var n0 = notes[drag.start[0]][drag.start[1]]; drag.erase = n0 === 1; if (n0 !== 2) notes[drag.start[0]][drag.start[1]] = drag.erase ? 0 : 1; render(); }
     else if (drag.erase) state[drag.start[0]][drag.start[1]] = 0;
     else if (state[drag.start[0]][drag.start[1]] === 0 && !cartAt(drag.start[0], drag.start[1])) state[drag.start[0]][drag.start[1]] = 1;
   }
-  if (drag.memo) { if (state[at[0]][at[1]] === 0 && !cartAt(at[0], at[1]) && !!notes[at[0]][at[1]] === drag.erase) { notes[at[0]][at[1]] = drag.erase ? 0 : 1; render(); } }
+  if (drag.noop) return;
+  if (drag.memo) { if (state[at[0]][at[1]] === 0 && !cartAt(at[0], at[1]) && notes[at[0]][at[1]] === (drag.erase ? 1 : 0)) { notes[at[0]][at[1]] = drag.erase ? 0 : 1; render(); } }
   else if (drag.erase) { if (state[at[0]][at[1]] === 1) { state[at[0]][at[1]] = 0; render(); } }
   else if (state[at[0]][at[1]] === 0 && !cartAt(at[0], at[1]) && tutoOk('paint', at[0], at[1])) { state[at[0]][at[1]] = 1; render(); }
 });
