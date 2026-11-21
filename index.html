@@ -924,7 +924,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 08:32';
+var BUILD = '11월 22일 08:35';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1042,17 +1042,38 @@ function duck(on) {
 function music() {
   if (!save.music) { if (bgm) bgm.pause(); return; }
   try {
-    if (!bgm) { bgm = new Audio('snd/bgm.mp3'); bgm.loop = true; bgm.volume = BGM_VOL; bgm.preload = 'auto'; }
+    if (!bgm) { bgm = new Audio('snd/bgm.mp3'); bgm.loop = true; bgm.volume = BGM_VOL; bgm.preload = 'auto';
+      bgm.addEventListener('pause', function () { setTimeout(function () { if (save.music && !document.hidden && bgm.paused) { var q = bgm.play(); if (q && q.catch) q.catch(function () {}); } }, 700); }); }
     if (bgm.paused && !document.hidden) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); }
   } catch (e) {}
 }
-document.addEventListener('pointerdown', function () { if (!bgm || bgm.paused) music(); });
+document.addEventListener('pointerdown', function () { sfxInit(); if (!bgm || bgm.paused) music(); });
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { if (bgm) bgm.pause(); wipNow(); rWipNow(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
+  if (document.hidden) { if (bgm) bgm.pause(); if (actx && actx.state === 'running') { try { actx.suspend(); } catch (e) {} } wipNow(); rWipNow(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
   else { music(); if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
 });
+// 효과음은 Web Audio로 낸다. 효과음마다 <audio>를 새로 틀면 안드로이드(특히 홈 화면에 깐 앱)가
+// 그걸 새 미디어로 보고 배경 음악을 잠깐씩 멈춘다. Web Audio 소리는 미디어 재생으로 치지 않아 배경 음악을 건드리지 않는다
+var actx = null, sbuf = {};
+function sfxInit() {
+  if (actx) { if (actx.state === 'suspended') { try { actx.resume(); } catch (e) {} } return; }
+  var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  try { actx = new AC(); } catch (e) { actx = null; return; }
+  Object.keys(SOUNDS).forEach(function (n) {
+    fetch('snd/' + n + '.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (b) {
+      actx.decodeAudioData(b, function (buf) { sbuf[n] = buf; }, function () {});
+    }).catch(function () {});
+  });
+}
 function play(name) {
   if (!save.sound || !SOUNDS[name]) return;
+  if (actx && sbuf[name]) {
+    try {
+      if (actx.state === 'suspended') actx.resume();
+      var src = actx.createBufferSource(), g = actx.createGain(); src.buffer = sbuf[name]; g.gain.value = 0.9;
+      src.connect(g); g.connect(actx.destination); src.start(0); return;
+    } catch (e) {}
+  }
   try { var a = SOUNDS[name].cloneNode(); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
 }
 
