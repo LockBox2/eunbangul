@@ -156,9 +156,9 @@ button:disabled { opacity: .35; cursor: default; }
 /* 메모: 후보 자리에 찍어 두는 점. 채점과 무관하다 */
 .cell .x.memo { opacity: 1; }
 .cell .x.memo::before, .cell .x.memo::after { background: #c2411f; width: 3px; box-shadow: 0 0 0 1.5px rgba(255,253,246,.8); }
-.cell .piece.memo, .cell .piece.memo.set { opacity: .5; filter: saturate(.35) brightness(1.12); animation: memoWave 1.8s ease-in-out infinite; }
+.cell .piece.memo, .cell .piece.memo.set { opacity: .62; filter: saturate(.4) brightness(1.1); animation: memoWave 1.8s ease-in-out infinite; }
 .cell[data-n="2"] { box-shadow: inset 0 0 0 3px rgba(194,65,31,.75); }
-@keyframes memoWave { 50% { opacity: .28; } }
+@keyframes memoWave { 50% { opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .cell .piece.memo, .cell .piece.memo.set { animation: none; } }
 #play .bar #memoBtn { padding: 8px 9px; }
 #play .bar #memoBtn svg { width: 22px; height: 22px; display: block; }
@@ -812,7 +812,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 21일 19:29';
+var BUILD = '11월 21일 19:30';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1394,11 +1394,13 @@ function shutCells() {
   return shut;
 }
 function render() {
-  var n = P.n, cf = conflicts(), shut = shutCells();
+  var n = P.n, cf = conflicts(), shut = shutCells(), real = 0;
+  for (var q = 0; q < n; q++) for (var q2 = 0; q2 < n; q2++) if (state[q][q2] === 2) real++;
+  var sweep = real > (P.real || 0); P.real = real;
   memoSync();
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
     var el = cellEl(r, c), s = state[r][c], h = houseOf[P.reg[r][c]].name;
-    if (notes[r] && notes[r][c] && (s !== 0 || shut[r][c])) notes[r][c] = 0;
+    if (notes[r] && notes[r][c] && (s !== 0 || (sweep && shut[r][c]))) notes[r][c] = 0;
     var nt = notes[r] && notes[r][c] ? notes[r][c] : 0;
     if (el.classList.contains('cart')) {
       var ck = cartAt(r, c);
@@ -1441,6 +1443,7 @@ function wipBack(i) {
   var okN = typeof w.nt === 'string' && w.nt.length === n * n;
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) { state[r][c] = cartAt(r, c) ? 0 : Number(w.st.charAt(r * n + c)); var wn = okN ? Number(w.nt.charAt(r * n + c)) : 0; notes[r][c] = (wn === 1 || wn === 2) && !cartAt(r, c) ? wn : 0; }
   mistakes = Math.max(0, Math.min(MAX_MAIL - 1, w.m | 0)); slips = Math.max(0, w.s | 0); hintPen = Math.max(0, w.h | 0); hints = Math.max(0, w.hn | 0);
+  P.real = (w.st.match(/2/g) || []).length;
   extraUsed = !!w.x; moves = Math.max(0, w.mv | 0); tAcc = Math.max(0, w.t | 0) * 1000; tStart = Date.now();
   return true;
 }
@@ -1652,7 +1655,7 @@ function tryPlace(r, c) {
   if (done || busy || state[r][c] === 2 || cartAt(r, c)) return;
   if (!tutoOk('place', r, c)) return;
   // 메모를 편 동안 길게 누르면 진짜로 보내지 않고 '세워 본' 표시만 한다. 채점하지 않고, 규칙 검사도 하지 않는다
-  if (memoOn) { if (state[r][c] !== 0) return; snapshot(); notes[r][c] = notes[r][c] === 2 ? 0 : 2; play('place'); afterChange(null, null); return; }
+  if (memoOn) { if (state[r][c] !== 0) return; snapshot(); notes[r][c] = notes[r][c] === 2 ? 0 : 2; afterChange(null, null); return; }
   if (livesOn() && P.sol[r] !== c) { wrong(r, c); return; }
   // 편지가 안 오는 1장과 편한 순회에서도 틀린 자리에 세운 횟수는 센다 (은방울이 깎인다)
   // 하나를 잘못 세우면 그걸 믿고 줄줄이 잘못 세우게 되니, 판 위에 틀린 관리원이 이미 있는 동안은 더 세지 않는다 (한 번 헤맨 걸 한 번으로 친다)
@@ -2116,7 +2119,7 @@ $('undo').addEventListener('click', function () { if (done || busy || !undoStack
 $('tutoSkip').addEventListener('click', tutoEnd);
 $('memoBtn').addEventListener('click', function () {
   if (done || busy || tuto) return;
-  memoOn = !memoOn; $('memoBtn').classList.remove('nudge'); memoSync(); play('place'); say(memoOn ? 'memoOn' : 'memoOff');
+  memoOn = !memoOn; $('memoBtn').classList.remove('nudge'); memoSync(); say(memoOn ? 'memoOn' : 'memoOff');
 });
 $('tutoNext').addEventListener('click', function () { if (tuto && tuto.steps[tuto.i].expect === 'read') { tuto.i++; play('place'); tutoShow(); } });
 $('reset').addEventListener('click', function () {
