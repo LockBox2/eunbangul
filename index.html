@@ -759,6 +759,7 @@ var LINES = {
   memoIntro: ['위의 연필이 메모예요. 켜 두면 X도 관리원도 연습 삼아 적어 볼 수 있어요. 틀려도 편지는 안 와요.'],
   memoOn: ['메모를 폈어요. 지금 놓는 건 전부 연습이에요. 진짜로 보내려면 메모를 접고 놓으세요.'],
   memoOff: ['메모를 접었어요. 이제 놓는 건 진짜예요.'],
+  dailyHintAsk: ['막시밀리안을 부르면 오늘 기록은 순위에 오르지 않아요. 그래도 부르시려면 한 번 더 눌러 주세요.'],
   resume: ['아까 하던 데서 이어서 해요.', '놓아 두신 그대로예요. 이어서 가요.'],
   freshBig: ['큰 댁이 있는 판이에요. 그 댁엔 두 사람을 보내 주세요.', '오늘은 {h}에 두 사람이 가요. 모두 {n}댁입니다.'],
   houseBig: ['{h}는 두 사람이면 돼요. 셋은 많아요.'],
@@ -859,7 +860,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 01:00';
+var BUILD = '11월 22일 01:13';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1869,20 +1870,21 @@ function finishDaily() {
   petals(); done = true; clearTimeout(idleTimer); wipDrop();
   if (tStart) { tAcc += Date.now() - tStart; tStart = null; }
   var dk = daily.key, took = elapsed(), got = 3 - (slips > 0 ? 1 : 0) - (hintPen > 0 ? 1 : 0), first = !save.daily[dk];
-  if (first) save.daily[dk] = { t: took, b: got };
+  var unr = hints > 0;
+  if (first) save.daily[dk] = { t: took, b: got, u: unr ? 1 : 0 };
   store();
   var bh = ''; for (var bk = 0; bk < 3; bk++) bh += '<i' + (bk < got ? ' class="got" style="--bd:' + (1.15 + bk * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
   $('rbells').innerHTML = bh; $('rbells').setAttribute('aria-label', '은방울 ' + got + '개');
   $('rtime').textContent = '걸린 시간 ' + clock(took);
   $('rbody').textContent = dayLabel(daily.dn) + ' 오늘의 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단, 길을 잘못 든 횟수 ' + slips + '번.';
   $('rmemo').hidden = true; $('rps').hidden = false;
-  $('rps').textContent = !lbOn ? '' : save.lbName ? '오늘 순위를 불러오는 중입니다…' : '오늘 순위에 오르려면 처음 화면의 「은방울 순위」에서 이름을 정해 주세요. 정하면 오늘 기록도 함께 올라갑니다.';
+  $('rps').textContent = !lbOn ? '' : unr ? '막시밀리안의 도움을 받아서 오늘 기록은 순위에 오르지 않습니다. 은방울은 그대로 받았습니다.' : save.lbName ? '오늘 순위를 불러오는 중입니다…' : '오늘 순위에 오르려면 처음 화면의 「은방울 순위」에서 이름을 정해 주세요. 정하면 오늘 기록도 함께 올라갑니다.';
   $('next').hidden = true; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로';
   for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
   say('clear'); duck(true);
   setTimeout(function () { play('clear'); }, 150);
   setTimeout(lbPush, 1500);
-  dailyPush().then(function (d) { if (d && d.me) $('rps').textContent = '오늘 ' + d.me.rank + '위 · 지금까지 ' + d.total + '명이 풀었습니다.' + (d.me.rank === 1 ? ' 내일 처음 화면에 이름이 걸립니다.' : ''); else if (save.lbName && lbOn) $('rps').textContent = '지금은 순위에 닿지 않습니다. 다음에 처음 화면을 열 때 다시 올립니다.'; });
+  dailyPush().then(function (d) { if (unr) return; if (d && d.me) $('rps').textContent = '오늘 ' + d.me.rank + '위 · 지금까지 ' + d.total + '명이 풀었습니다.' + (d.me.rank === 1 ? ' 내일 처음 화면에 이름이 걸립니다.' : ''); else if (save.lbName && lbOn) $('rps').textContent = '지금은 순위에 닿지 않습니다. 다음에 처음 화면을 열 때 다시 올립니다.'; });
   setTimeout(function () { $('reportVeil').classList.add('on'); $('toChapters').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
@@ -2325,6 +2327,11 @@ function doHint() {
 }
 $('hint').addEventListener('click', function () {
   if (done) return;
+  // 오늘의 순회표: 막시밀리안을 부르면 그날 기록은 순위에서 빠진다. 처음 한 번은 묻고, 6초 안에 한 번 더 누르면 부른다
+  if (daily && !hints && !busy) {
+    if (!daily.armed || Date.now() - daily.armed > 6000) { daily.armed = Date.now(); say('dailyHintAsk'); if (!save.react) { $('partner').classList.remove('off'); setTimeout(function () { $('partner').classList.toggle('off', !save.react); }, 6000); } return; }
+    daily.armed = 0;
+  }
   if (tuto && tuto.steps[tuto.i].expect !== 'free') { if (tutoOk('hint') && !busy) { tuto.hinted = true; doHint(); } return; }
   var today = new Date().toDateString();
   if (save.hintDay !== today) { save.hintDay = today; save.hintUsed = 0; }
@@ -2518,7 +2525,7 @@ function lbRender(d, note) {
 // 오늘의 순회표: 처음 푼 기록을 한 번만 올린다. 못 올렸으면 다음에 처음 화면을 열 때 다시
 function dailyPush() {
   if (!lbOn || !save.lbName || !window.fetch) return Promise.resolve(null);
-  var todo = Object.keys(save.daily || {}).filter(function (k) { return !save.dailySent[k] && k >= dayKey(dayNum() - 1); });
+  var todo = Object.keys(save.daily || {}).filter(function (k) { return !save.dailySent[k] && !save.daily[k].u && k >= dayKey(dayNum() - 1); });
   if (!todo.length) return dailyGet();
   return Promise.all(todo.map(function (k) {
     return lbAsk('POST', { kind: 'daily', id: lbId(), name: save.lbName, day: k, t: save.daily[k].t, b: save.daily[k].b })
@@ -2540,7 +2547,7 @@ function dailyRender(d, note) {
   });
   $('dailyList').innerHTML = d ? (h || '<li class="empty">오늘은 아직 아무도 풀지 않았습니다.</li>') : '';
   var mine = save.daily[dayKey(dayNum())];
-  $('dailyMe').textContent = (d && d.me ? '오늘 ' + d.me.rank + '위 · ' + clock(d.me.t) + ' (모두 ' + d.total + '명)' : mine ? '내 기록 ' + clock(mine.t) : '아직 오늘 판을 풀지 않았습니다') ;
+  $('dailyMe').textContent = (d && d.me ? '오늘 ' + d.me.rank + '위 · ' + clock(d.me.t) + ' (모두 ' + d.total + '명)' : mine ? '내 기록 ' + clock(mine.t) + (mine.u ? ' (막시밀리안 도움 · 순위 제외)' : '') : '아직 오늘 판을 풀지 않았습니다');
   $('dailyMsg').textContent = note || '';
 }
 function dailyRankOpen() {
