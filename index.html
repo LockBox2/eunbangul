@@ -68,6 +68,8 @@ button:disabled { opacity: .35; cursor: default; }
 .menu { display: grid; gap: 8px; }
 .menu .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .menu .row button { padding-left: 4px; padding-right: 4px; white-space: nowrap; }
+.menu .row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.menu .row.two:has(#openRank[hidden]) { grid-template-columns: 1fr; }
 .ranklist { list-style: none; margin: 8px 0 10px; padding: 0; max-height: 46vh; overflow-y: auto; border-top: 1px solid #d8cfba; }
 .ranklist li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 8px; align-items: baseline; padding: 7px 4px; border-bottom: 1px solid #e6dfcd; }
 .ranklist li b { font-weight: 700; text-align: right; }
@@ -502,13 +504,15 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <div class="ledger"><span>하르텐 상회 영지 지점</span><span>관리 고객 <b class="num" id="homeCount">91</b>댁</span></div>
     <div class="menu">
       <button type="button" class="primary" id="resume">순회표 짜기</button>
+      <div class="row two">
+        <button type="button" class="dailybtn" id="openDaily"><b>오늘의 순회표</b><small id="dailySub"></small></button>
+        <button type="button" id="openRank">은방울 순위</button>
+      </div>
       <div class="row">
         <button type="button" id="openChapters">일지 펼치기</button>
         <button type="button" id="openStory">이야기</button>
         <button type="button" id="openSettings">설정</button>
       </div>
-      <button type="button" class="dailybtn" id="openDaily"><b>오늘의 순회표</b><small id="dailySub"></small></button>
-      <button type="button" id="openRank">은방울 순위</button>
     </div>
   </div>
 </main>
@@ -863,7 +867,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 01:29';
+var BUILD = '11월 22일 01:38';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -950,7 +954,8 @@ function stageOpen(i) {
 }
 function unlocked(c) { return stageOpen(c * CHAPTER_SIZE) || clearedIn(c) > 0; }
 function solvedAll() { return save.cleared.length + Object.keys(save.daily || {}).length + ((save.inf && save.inf.n) || 0); }
-function households() { return 91 + Math.round(43 * save.cleared.length / PUZZLES.length); }
+// 관리 고객: 본편을 다 마치면 134댁, 그 뒤로는 무한 순회 10판마다 한 댁씩 늘어난다
+function households() { return 91 + Math.round(43 * save.cleared.length / PUZZLES.length) + Math.floor(((save.inf && save.inf.n) || 0) / 10); }
 function nextOpen() {
   for (var i = 0; i < PUZZLES.length; i++) if (!isCleared(i) && stageOpen(i)) return i;
   return -1;
@@ -1012,7 +1017,7 @@ function renderHome() {
   // 오늘의 순회표 단추와 어제의 1등
   var dn = dayNum(), z = dailyZ(dn), od = dailyOpen(), mine = save.daily[dayKey(dn)];
   $('openDaily').disabled = !od; $('openDaily').classList.toggle('done', !!mine);
-  $('dailySub').textContent = !od ? '1장을 마치면 열립니다' : mine ? '오늘 완료 · ' + clock(mine.t) + ' · 순위 보기' : WEEK[(dn + 3) % 7] + '요일 · ' + z[1] + '×' + z[1] + ' · ' + z[2];
+  $('dailySub').textContent = !od ? '1장을 마치면 열립니다' : mine ? '완료 · ' + clock(mine.t) + ' · 순위' : WEEK[(dn + 3) % 7] + ' · ' + z[1] + '×' + z[1] + ' · ' + z[2];
   champShow(dailyBoard);
   if (lbOn && Date.now() - dailyAt > 5 * 60000) { dailyAt = Date.now(); dailyPush().then(champShow); }
 }
