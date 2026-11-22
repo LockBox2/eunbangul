@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>은방울 · 마을 보상 장면 시안 (제임스 에셋)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: linear-gradient(#f6efe2, #e9dcc4); font-family: system-ui, sans-serif; color: #3a3326; overflow: hidden; }
+  h1 { font-size: 16px; text-align: center; margin: 14px 0 2px; font-weight: 600; }
+  p.sub { font-size: 12px; text-align: center; margin: 0 0 6px; color: #7a6f5c; }
+  #stage { position: absolute; left: 0; right: 0; top: 56px; bottom: 64px; }
+  #world { position: absolute; left: 50%; top: 50%; }
+  #world img, #world .tint { position: absolute; display: block; pointer-events: none; }
+  #world .tint { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); mix-blend-mode: multiply; opacity: .5; }
+  #world .pop { opacity: 0; transform: translateY(-14px); animation: drop .5s cubic-bezier(.3,1.4,.5,1) forwards; }
+  @keyframes drop { to { opacity: 1; transform: none; } }
+  #world .need { position: absolute; font: 700 13px system-ui; color: #fff; background: #d9603f; border: 2px solid #fff; border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; box-shadow: 0 2px 4px rgba(0,0,0,.25); }
+  .hud { position: fixed; left: 0; right: 0; bottom: calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .hud button { font: inherit; font-size: 14px; color: #fff6dc; background: #2e3a72; border: 1px solid #6b78b4; border-radius: 10px; padding: 9px 12px; }
+  .hud button.on { background: #d9603f; border-color: #f3a184; }
+</style>
+</head>
+<body>
+<h1 id="title"></h1>
+<p class="sub">장을 마치면 보는 마을 · 제임스 에셋 시안(한 장에서 오려 씀)</p>
+<div id="stage"><div id="world"></div></div>
+<div class="hud">
+  <button type="button" data-b="0" class="on">7×7 판</button>
+  <button type="button" data-b="1">9×9 큰 댁 판</button>
+  <button type="button" id="tint" class="on">댁 색 보기</button>
+  <button type="button" id="again">다시 세우기</button>
+</div>
+<script>
+// 판 데이터(마을 시안과 같은 두 판). sol[r] = r줄 관리원 칸, carts = 줄·칸·필요 수
+var BOARDS = [
+  { title: '로웰 고객 출장 · 72번 순회표', n: 7, reg: 'BBBDDACBBDDCACBBBDCACEBDDCCCEDDFFGCEEEFFGCEEFFFGG', sol: '5142036', carts: '641', big: '' },
+  { title: '분기 보고회 · 236번 순회표', n: 9, reg: 'CCCAAABBBDDCCDAEEBDDCCDDEEBDDCCDDDEBDDDDDFFEEDDDDDFFEEDDDHFFGGGDDDHFHGGGDHHHHHGGG', sol: '382475061', carts: '452', big: 'D' }
+];
+var COLORS = ['#f9e79d', '#c0e5bb', '#a6ddfb', '#dfc9fa', '#ffc5bc', '#ffd1a7', '#a3e9e2', '#c0d3ff', '#fbc4db'];
+// 에셋 크기(원본 px). 잔디 타일 윗면 마름모: 가로 225, 세로 약 130(꼭짓점 기준), 두께 약 7
+var TW = 225, TH = 130;
+var A = {
+  grass: [227, 137], 'house-sa': [252, 213], 'house-sb': [233, 233], 'house-ma': [274, 308], 'house-mb': [322, 316], mansion: [402, 346],
+  'tree-a': [180, 247], 'tree-b': [233, 240], flowers: [257, 187], carriage: [221, 189], lamp: [97, 185], hedge: [141, 114], sign: [144, 197], arch: [172, 172]
+};
+var HOUSES = ['house-sa', 'house-sb', 'house-ma', 'house-mb'];
+var cur = 0, tintOn = true;
+function build(k) {
+  var B = BOARDS[k], n = B.n, w = document.getElementById('world'), h = '';
+  document.getElementById('title').textContent = B.title;
+  var st = document.getElementById('stage'), sw = st.clientWidth, sh = st.clientHeight;
+  // 마을 전체 폭 n*TW, 높이 n*TH(+건물 머리) 가 화면에 들어오게
+  var s = Math.min(sw / (n * TW + 40), (sh - 40) / (n * TH + 260));
+  var tw = TW * s, th = TH * s;
+  var carts = {}; for (var q = 0; q < B.carts.length; q += 3) carts[B.carts[q] + ',' + B.carts[q + 1]] = B.carts[q + 2];
+  var seed = 11 + k * 17; function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  var items = [], bigDone = false;
+  var oy = -(n * th) / 2 + 110 * s;
+  for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+    var cx = (c - r) * tw / 2, cy = oy + (c + r) * th / 2; // 마름모 위 꼭짓점
+    var z = (r + c) * 10, g = B.reg.charCodeAt(r * n + c) - 65, d = ((r + c) * 0.05).toFixed(2);
+    items.push({ z: z, html: '<img src="vil/grass.webp" style="left:' + (cx - A.grass[0] * s / 2).toFixed(1) + 'px;top:' + cy.toFixed(1) + 'px;width:' + (A.grass[0] * s).toFixed(1) + 'px">' });
+    items.push({ z: z + 1, html: '<div class="tint" style="left:' + (cx - tw / 2).toFixed(1) + 'px;top:' + cy.toFixed(1) + 'px;width:' + tw.toFixed(1) + 'px;height:' + th.toFixed(1) + 'px;background:' + COLORS[g % 9] + '"></div>' });
+    var name = null, bx = 0;
+    // 큰 댁은 관리원이 둘이라 저택 하나 + 별채(중간 집) 하나
+    if (Number(B.sol[r]) === c) { if (B.big && B.reg[r * n + c] === B.big) { name = bigDone ? 'house-mb' : 'mansion'; bigDone = true; } else name = HOUSES[(g + r) % 4]; }
+    else if (carts[r + ',' + c]) name = 'carriage';
+    else { var x = rnd(); name = x < 0.16 ? 'tree-b' : x < 0.26 ? 'tree-a' : x < 0.34 ? 'flowers' : x < 0.37 ? 'lamp' : null; }
+    if (name) {
+      var a = A[name], k2 = name === 'mansion' ? 1 : name.indexOf('house') === 0 ? 0.92 : name === 'carriage' ? 0.7 : name.indexOf('tree') === 0 ? 0.62 : name === 'flowers' ? 0.62 : 0.6;
+      var iw = a[0] * s * k2, ih = a[1] * s * k2;
+      // 그림 아래 가운데를 마름모 아래쪽 1/4 지점에 세운다
+      var by = cy + th * 0.78;
+      items.push({ z: z + 5, html: '<img class="pop" src="vil/' + name + '.webp" style="left:' + (cx - iw / 2).toFixed(1) + 'px;top:' + (by - ih).toFixed(1) + 'px;width:' + iw.toFixed(1) + 'px;animation-delay:' + d + 's">' });
+      if (name === 'carriage') items.push({ z: z + 6, html: '<b class="need pop" style="left:' + (cx + iw * 0.25).toFixed(1) + 'px;top:' + (by - ih - 8).toFixed(1) + 'px;animation-delay:' + d + 's">' + carts[r + ',' + c] + '</b>' });
+    }
+  }
+  items.sort(function (p, q) { return p.z - q.z; });
+  w.innerHTML = items.map(function (i) { return i.html; }).join('');
+  w.querySelectorAll('.tint').forEach(function (t) { t.style.display = tintOn ? '' : 'none'; });
+}
+document.querySelectorAll('[data-b]').forEach(function (b) {
+  b.addEventListener('click', function () { document.querySelectorAll('[data-b]').forEach(function (x) { x.classList.toggle('on', x === b); }); cur = +b.dataset.b; build(cur); });
+});
+document.getElementById('tint').addEventListener('click', function (e) { tintOn = !tintOn; e.target.classList.toggle('on', tintOn); document.querySelectorAll('#world .tint').forEach(function (t) { t.style.display = tintOn ? '' : 'none'; }); });
+document.getElementById('again').addEventListener('click', function () { build(cur); });
+window.addEventListener('resize', function () { build(cur); });
+build(0);
+</script>
+</body>
+</html>
