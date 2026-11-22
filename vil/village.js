@@ -25,15 +25,16 @@
     '#vlay .vf{position:absolute;transform-origin:50% 50%;display:grid;background:#3b2f22;box-shadow:0 0 0 3px #3b2f22}' +
     '#vlay .vf i{display:block;position:relative}#vlay .vf i img{position:absolute;left:8%;top:8%;width:84%}' +
     '#vlay .vf i b{position:absolute;inset:22%;border-radius:50%;background:#d9603f;color:#fff;display:grid;place-items:center;font:700 11px system-ui,sans-serif}' +
-    '#vlay .vmsg{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fdf9ef;border:1px solid #c9b994;border-radius:10px;padding:8px 14px;font-size:14px;color:#3a3326;box-shadow:0 4px 12px rgba(0,0,0,.15);opacity:0;transition:opacity .4s;white-space:nowrap}' +
-    '#vlay .vmsg.on{opacity:1}';
-  var anims = [], loops = [], timers = [], root = null, onEnd = null, playing = false, ended = false, sound = null;
+    '#vlay .vmsg{position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);background:#fdf9ef;border:1px solid #c9b994;border-radius:10px;padding:8px 14px;font-size:14px;color:#3a3326;box-shadow:0 4px 12px rgba(0,0,0,.15);opacity:0;transition:opacity .4s;white-space:nowrap}' +
+    '#vlay .vmsg.on{opacity:1}' +
+    'body.vOn #reportVeil{background:rgba(10,14,28,.16);align-items:flex-end;padding-bottom:calc(12px + env(safe-area-inset-bottom))}body.vOn #reportVeil .sheet{box-shadow:0 -6px 24px rgba(0,0,0,.25)}';
+  var root_cam = null, anims = [], loops = [], timers = [], root = null, onEnd = null, playing = false, ended = false, sound = null;
   function px(v) { return v.toFixed(1) + 'px'; }
   function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
   function an(el, kf, opt) { var o = { fill: 'forwards', easing: 'ease-out' }; for (var k in opt) o[k] = opt[k]; var a = el.animate(kf, o); (o.iterations === Infinity ? loops : anims).push(a); return a; }
   function close() {
     timers.forEach(clearTimeout); timers = []; anims.concat(loops).forEach(function (a) { try { a.cancel(); } catch (e) {} }); anims = []; loops = [];
-    if (root) root.remove(); root = null; playing = false; onEnd = null;
+    if (root) root.remove(); root = null; playing = false; onEnd = null; document.body.classList.remove('vOn');
   }
   function build(o) {
     var n = o.n, sw = window.innerWidth, sh = window.innerHeight, N = n + 4;
@@ -146,12 +147,19 @@
     var msg = document.createElement('div'); msg.className = 'vmsg'; msg.textContent = '모든 댁에 불이 켜졌습니다'; root.appendChild(msg);
     document.body.appendChild(root);
     // 판 자리 맞추기: 월드 원점(화면 가로 가운데, 세로 46%) 기준으로 실제 판 가운데·크기
-    var wx = sw / 2, wy = sh * 0.46, br = o.rect;
-    var bcx = br ? br.left + br.width / 2 - wx : 0, bcy = br ? br.top + br.height / 2 - wy : -cy, start = br ? br.width / side : Math.min(sw * 0.9, sh * 0.6) / side;
+    var wx = sw / 2, wy = sh * 0.46, wy0 = wy, br = o.rect;
+    var bcx = br ? br.left + br.width / 2 - wx : 0, bcy = br ? br.top + br.height / 2 - wy : 0, start = br ? br.width / side : Math.min(sw * 0.9, sh * 0.6) / side;
+    // 카메라: 가까이(판 마름모가 화면 폭보다 조금 넓게)서 시작해, 다 켜지면 물러나 마을 전체를 위쪽에 보여 준다 (아래는 보고서 자리)
+    var Z = Math.max(1, sw * 1.38 / (n * tw)), ty = -Z * cy;
+    // 물러난 뒤: 보고서 위 빈자리(화면 위쪽 약 36%)에 판과 흙길이 다 들어오게
+    var avail = sh * 0.36, Zf = Math.min(1, avail * 0.98 / ((n + 3) * th)), fy = avail / 2 + 10 - wy0;
+    root_cam = { near: 'translate(0px,' + px(ty) + ') scale(' + Z.toFixed(4) + ')', far: 'translate(0px,' + px(fy - Zf * cy) + ') scale(' + Zf.toFixed(4) + ')' };
+    world.style.transform = root_cam.near;
+    var lx = bcx / Z, ly = (bcy - ty) / Z, ls = start / Z;
     flat.style.cssText = 'left:' + px(-side / 2) + ';top:' + px(cy - side / 2) + ';width:' + px(side) + ';height:' + px(side) + ';grid-template-columns:repeat(' + n + ',1fr);gap:' + px(Math.max(0.6, a * 0.03));
-    flat._from = 'translate(' + px(bcx) + ',' + px(bcy - cy) + ') scale(' + start.toFixed(4) + ') rotateX(0deg) rotateZ(0deg)';
+    flat._from = 'translate(' + px(lx) + ',' + px(ly - cy) + ') scale(' + ls.toFixed(4) + ') rotateX(0deg) rotateZ(0deg)';
     flat.style.transform = flat._from;
-    root._seq = seq; root._iso = iso; root._flat = flat; root._msg = msg;
+    root._seq = seq; root._iso = iso; root._flat = flat; root._msg = msg; root._world = world; root._cam = root_cam;
   }
   function smokeLoop(h) { h._smoke.forEach(function (sm, j) { an(sm, [{ opacity: 0, transform: 'translate(0,0) scale(.6)' }, { opacity: .8, offset: .2 }, { opacity: 0, transform: 'translate(' + (j - 1) * 3 + 'px,-' + (20 + j * 5) + 'px) scale(2.3)' }], { duration: 2200, delay: j * 730, iterations: Infinity, fill: 'both' }); }); }
   function lifeOn() {
@@ -165,8 +173,9 @@
   function end() {
     if (ended) return; ended = true; playing = false;
     lifeOn(); if (sound) sound('bell'); root._msg.classList.add('on');
-    // 보고서는 조금 뒤에 마을 위로 올라온다
-    later(1100, function () { var f = onEnd; onEnd = null; if (f) f(); });
+    // 카메라가 물러나 마을 전체를 보여 주고, 보고서는 아래에서 올라온다
+    an(root._world, [{ transform: root._cam.near }, { transform: root._cam.far }], { duration: 1500, easing: 'cubic-bezier(.45,0,.25,1)' });
+    later(1500, function () { var f = onEnd; onEnd = null; if (f) f(); });
   }
   function skip() {
     if (!playing) { if (!ended) return; var f = onEnd; onEnd = null; if (f) f(); return; }
@@ -178,7 +187,7 @@
   function run(o, done) {
     close();
     if (!document.getElementById('vlayCss')) { var st = document.createElement('style'); st.id = 'vlayCss'; st.textContent = css; document.head.appendChild(st); }
-    sound = o.sound || null; onEnd = done; ended = false; playing = true;
+    sound = o.sound || null; onEnd = done; ended = false; playing = true; document.body.classList.add('vOn');
     build(o);
     root.addEventListener('click', skip);
     var seq = root._seq, iso = root._iso, flat = root._flat;

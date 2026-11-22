@@ -960,7 +960,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 16:13';
+var BUILD = '11월 22일 16:22';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1125,7 +1125,7 @@ function villageOn() { return !!save.villageTry; }
 var villageLoad = null;
 function villageGo(show, ms) {
   if (!villageOn()) { setTimeout(show, ms); return; }
-  if (!villageLoad) villageLoad = new Promise(function (ok, no) { var sc = document.createElement('script'); sc.src = 'vil/village.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+  if (!villageLoad) villageLoad = new Promise(function (ok, no) { var sc = document.createElement('script'); sc.src = 'vil/village.js?v=' + encodeURIComponent(BUILD); sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
   var snap = { n: P.n, reg: P.reg, sol: P.sol, carts: P.carts, big: P.big,
     colors: houseOf.map(function (h) { return h.color; }), col: houseOf.map(function (h) { var k = COLORS.indexOf(h.color); return k < 0 ? 0 : k; }),
     staff: P.sol.map(function (c, r) { return 'img/staff-' + P.staff[r % 9] + '.webp'; }),
