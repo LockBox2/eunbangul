@@ -22,7 +22,7 @@
   <button type="button" id="gyro">기울기 켜기</button>
   <button type="button" id="mode">입력: 자동 흔들기</button>
   <button type="button" id="amp">세기 1×</button>
-  <button type="button" id="layers" class="on">카메라형: 배경만 움직임</button>
+  <button type="button" id="layers" class="on">카메라형</button>
   <button type="button" id="hide">단추 숨기기</button>
 </div>
 <script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
@@ -31,7 +31,7 @@ import * as THREE from 'three';
 // 그림 캔버스 864×1536. 세 장 모두 같은 원점·크기(잘라내지 않음)
 const W = 864, H = 1536;
 // 움직임 한계(원본 픽셀): 제임스 README 기준 리나 가로 ±8, 세로 ±6. 배경·앞 레이어는 고정이 기본
-const LIMIT = { rina: [8, 6], bg: [5, 2], fg: [0, 0] };
+const LIMIT = { rina: [8, 6], bg: [9, 3], fg: [0, 0], rinaCam: 2 };
 // 카메라형(기본): 초점을 리나에 맞춘 카메라처럼 리나·책상은 그대로, 배경만 반대로 움직인다. 리나형: 리나만 움직인다(비교용)
 let amp = 1, cam2 = true, mode = 'auto';
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, premultipliedAlpha: true });
@@ -81,10 +81,10 @@ document.getElementById('mode').addEventListener('click', () => {
   mode = mode === 'auto' ? 'touch' : mode === 'touch' ? (base !== undefined && document.getElementById('gyro').classList.contains('on') ? 'gyro' : 'auto') : 'auto';
   base = null; document.getElementById('mode').textContent = '입력: ' + ({ auto: '자동 흔들기', touch: '끌기', gyro: '기울기' })[mode]; setTarget(0, 0);
 });
-document.getElementById('amp').addEventListener('click', () => { amp = amp === 1 ? 1.5 : amp === 1.5 ? 0.5 : 1; document.getElementById('amp').textContent = '세기 ' + amp + '×'; kick(); });
-document.getElementById('layers').addEventListener('click', (e) => { cam2 = !cam2; e.target.textContent = cam2 ? '카메라형: 배경만 움직임' : '리나형: 리나만 움직임'; e.target.classList.toggle('on', cam2); bgScale(); kick(); });
+document.getElementById('amp').addEventListener('click', () => { amp = amp === 1 ? 1.5 : amp === 1.5 ? 0.5 : 1; document.getElementById('amp').textContent = '세기 ' + amp + '×'; bgScale(); kick(); });
+document.getElementById('layers').addEventListener('click', (e) => { cam2 = !cam2; e.target.textContent = cam2 ? '카메라형' : '리나형: 리나만 움직임'; e.target.classList.toggle('on', cam2); bgScale(); kick(); });
 // 배경이 움직여도 가장자리가 드러나지 않게 1.5% 키워 둔다
-function bgScale() { const k = cam2 ? 1.015 : 1; bg.scale.set(k, k, 1); }
+function bgScale() { const k = cam2 ? 1 + 0.025 * Math.max(1, amp) : 1; bg.scale.set(k, k, 1); }
 bgScale();
 document.getElementById('hide').addEventListener('click', () => { document.querySelector('.hud').style.display = 'none'; document.getElementById('info').style.display = 'none'; });
 document.getElementById('view').addEventListener('dblclick', () => { document.querySelector('.hud').style.display = ''; document.getElementById('info').style.display = ''; });
@@ -98,7 +98,8 @@ function tick(t) {
   if (mode === 'auto') { const s = t / 1000; tx = Math.sin(s * 0.7) * 0.9; ty = Math.sin(s * 0.53 + 1) * 0.7; }
   cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
   const rm = cam2 ? 0 : 1, bm = cam2 ? 1 : 0;
-  rina.position.x = W / 2 + cx * LIMIT.rina[0] * amp * rm; rina.position.y = -H / 2 - cy * LIMIT.rina[1] * amp * rm;
+  // 카메라형에서도 리나는 가로로만 2px 카메라 쪽으로 살짝: 배경과 반대로 움직여 층이 갈려 보인다 (세로로 움직이면 치마 아래 잘린 선이 드러난다)
+  rina.position.x = W / 2 + cx * (cam2 ? LIMIT.rinaCam : LIMIT.rina[0]) * amp; rina.position.y = -H / 2 - cy * LIMIT.rina[1] * amp * rm;
   bg.position.x = W / 2 - cx * LIMIT.bg[0] * amp * bm; bg.position.y = -H / 2 + cy * LIMIT.bg[1] * amp * bm;
   draw();
   if (mode === 'auto' || Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002) requestAnimationFrame(tick); else running = false;
