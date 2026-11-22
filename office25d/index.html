@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>지점장실 2.5D 시험 (세 레이어)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #12152c; color: #fff6dc; font-family: system-ui, sans-serif; overflow: hidden; overscroll-behavior: none; }
+  #view { position: fixed; inset: 0; touch-action: none; }
+  canvas { display: block; }
+  .hud { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; z-index: 2; }
+  .hud button { font: inherit; font-size: 14px; color: #fff6dc; background: rgba(30,38,80,.82); border: 1px solid #6b78b4; border-radius: 10px; padding: 9px 12px; min-height: 40px; }
+  .hud button.on { background: #d9603f; border-color: #f3a184; }
+  .info { position: fixed; top: calc(8px + env(safe-area-inset-top)); left: 10px; right: 10px; z-index: 2; font-size: 12px; line-height: 1.5; text-align: center; text-shadow: 0 1px 3px #000; opacity: .9; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<div class="info" id="info">불러오는 중…</div>
+<div class="hud">
+  <button type="button" id="gyro">기울기 켜기</button>
+  <button type="button" id="mode">입력: 자동 흔들기</button>
+  <button type="button" id="amp">세기 1×</button>
+  <button type="button" id="layers">리나만 움직임</button>
+</div>
+<script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+// 그림 캔버스 864×1536. 세 장 모두 같은 원점·크기(잘라내지 않음)
+const W = 864, H = 1536;
+// 움직임 한계(원본 픽셀): 제임스 README 기준 리나 가로 ±8, 세로 ±6. 배경·앞 레이어는 고정이 기본
+const LIMIT = { rina: [8, 6], bg: [3, 2], fg: [0, 0] };
+let amp = 1, moveAll = false, mode = 'auto';
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, premultipliedAlpha: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.getElementById('view').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const cam = new THREE.OrthographicCamera(0, W, 0, -H, -100, 100); // 위가 0, 아래로 -H
+const loader = new THREE.TextureLoader();
+function plane(url, z) {
+  const tex = loader.load(url, () => { loaded++; if (loaded === 3) { document.getElementById('info').textContent = info0; draw(); } });
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  m.position.set(W / 2, -H / 2, z); scene.add(m); return m;
+}
+let loaded = 0;
+const info0 = '세 레이어 시험 · 배경 / 리나 / 책상·안나 · 리나 최대 ±8px';
+// 배경은 움직일 때 가장자리가 드러나지 않게 살짝 키워 둔다 (배경도 움직이기 켰을 때만)
+const bg = plane('bg.webp', -20), rina = plane('rina.webp', -8), fg = plane('fg.webp', 0);
+// 화면 채우기: 게임 처음 화면처럼 cover, 아래쪽 80% 기준
+function fit() {
+  const vw = window.innerWidth, vh = window.innerHeight; renderer.setSize(vw, vh);
+  const k = Math.max(vw / W, vh / H), w = vw / k, h = vh / k, x0 = (W - w) * 0.5, y0 = (H - h) * 0.8;
+  cam.left = x0; cam.right = x0 + w; cam.top = -y0; cam.bottom = -(y0 + h); cam.updateProjectionMatrix(); draw();
+}
+window.addEventListener('resize', fit);
+// 입력 → 목표 기울기(-1..1), 부드럽게 따라간다
+let tx = 0, ty = 0, cx = 0, cy = 0, base = null, last = 0, running = false;
+function setTarget(x, y) { tx = Math.max(-1, Math.min(1, x)); ty = Math.max(-1, Math.min(1, y)); kick(); }
+function onOrient(e) {
+  if (mode !== 'gyro' || e.gamma == null) return;
+  if (!base) base = { g: e.gamma, b: e.beta };
+  // 4도 기울이면 끝까지. 처음 켠 각도를 기준으로 잡는다
+  setTarget((e.gamma - base.g) / 4, (e.beta - base.b) / 4);
+}
+document.getElementById('gyro').addEventListener('click', async () => {
+  try {
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('denied');
+    }
+    window.addEventListener('deviceorientation', onOrient); mode = 'gyro'; base = null;
+    document.getElementById('mode').textContent = '입력: 기울기'; document.getElementById('gyro').classList.add('on');
+    document.getElementById('info').textContent = '폰을 살짝 기울여 보세요 (지금 각도가 기준)';
+  } catch (e) { document.getElementById('info').textContent = '이 브라우저에서는 기울기를 쓸 수 없어요. 화면을 끌어 보세요'; mode = 'touch'; document.getElementById('mode').textContent = '입력: 끌기'; }
+});
+document.getElementById('mode').addEventListener('click', () => {
+  mode = mode === 'auto' ? 'touch' : mode === 'touch' ? (base !== undefined && document.getElementById('gyro').classList.contains('on') ? 'gyro' : 'auto') : 'auto';
+  base = null; document.getElementById('mode').textContent = '입력: ' + ({ auto: '자동 흔들기', touch: '끌기', gyro: '기울기' })[mode]; setTarget(0, 0);
+});
+document.getElementById('amp').addEventListener('click', () => { amp = amp === 1 ? 1.5 : amp === 1.5 ? 0.5 : 1; document.getElementById('amp').textContent = '세기 ' + amp + '×'; kick(); });
+document.getElementById('layers').addEventListener('click', (e) => { moveAll = !moveAll; e.target.textContent = moveAll ? '배경도 반대로 살짝' : '리나만 움직임'; e.target.classList.toggle('on', moveAll); bg.scale.set(moveAll ? 1.01 : 1, moveAll ? 1.01 : 1, 1); kick(); });
+// 끌기: 화면 가운데에서 얼마나 떨어졌는지로
+const view = document.getElementById('view');
+view.addEventListener('pointermove', (e) => { if (mode !== 'touch' || !(e.buttons || e.pointerType === 'touch')) return; setTarget((e.clientX / innerWidth - 0.5) * 2, (e.clientY / innerHeight - 0.5) * 2); });
+view.addEventListener('pointerup', () => { if (mode === 'touch') setTarget(0, 0); });
+// 움직일 때만 그린다 (배터리)
+function kick() { if (!running) { running = true; requestAnimationFrame(tick); } }
+function tick(t) {
+  if (mode === 'auto') { const s = t / 1000; tx = Math.sin(s * 0.7) * 0.9; ty = Math.sin(s * 0.53 + 1) * 0.7; }
+  cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
+  rina.position.x = W / 2 + cx * LIMIT.rina[0] * amp; rina.position.y = -H / 2 - cy * LIMIT.rina[1] * amp;
+  bg.position.x = W / 2 - (moveAll ? cx * LIMIT.bg[0] * amp : 0); bg.position.y = -H / 2 + (moveAll ? cy * LIMIT.bg[1] * amp : 0);
+  draw();
+  if (mode === 'auto' || Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002) requestAnimationFrame(tick); else running = false;
+}
+function draw() { renderer.render(scene, cam); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && mode === 'auto') kick(); });
+fit(); kick();
+</script>
+</body>
+</html>
