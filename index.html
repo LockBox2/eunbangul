@@ -961,7 +961,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 16:51';
+var BUILD = '11월 22일 17:02';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1087,7 +1087,13 @@ function music() {
     if (bgm.paused && !document.hidden) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); }
   } catch (e) {}
 }
-document.addEventListener('pointerdown', function () { sfxInit(); if (!bgm || bgm.paused || bgmStuck()) bgmKick(); });
+// 다른 앱에 다녀온 뒤에는 음악이 '재생 중'으로 나와도 소리가 안 나는 일이 있어(안드로이드), 돌아온 뒤 첫 터치에서는 무조건 다시 튼다
+var wakeKick = false;
+document.addEventListener('pointerdown', function () {
+  sfxInit();
+  if (wakeKick) { wakeKick = false; sfxWake(); bgmKick(); return; }
+  if (!bgm || bgm.paused || bgmStuck()) bgmKick();
+}, true);
 // 다른 앱(카톡 등)에 다녀오면 안드로이드가 음악의 소리 차례를 가져가서, 재생 중이라고 나오는데 소리는 안 나거나 멈춘 채로 남는 일이 있다.
 // 돌아올 때와 화면을 누를 때 음악을 한 번 멈췄다 다시 틀어 소리 차례를 되찾고, 몇 초마다 재생 위치가 실제로 흐르는지도 본다
 var bgmLastT = -1, bgmLastAt = 0;
@@ -1104,13 +1110,13 @@ setInterval(function () {
 }, 2000);
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) { if (bgm) bgm.pause(); if (actx && actx.state === 'running') { try { actx.suspend(); } catch (e) {} } wipNow(); rWipNow(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
-  else { bgmKick(); if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} } if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
+  else { wakeKick = true; bgmKick(); if (actx && actx.state !== 'running') { try { actx.resume(); } catch (e) {} } if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
 });
 // 효과음은 Web Audio로 낸다. 효과음마다 <audio>를 새로 틀면 안드로이드(특히 홈 화면에 깐 앱)가
 // 그걸 새 미디어로 보고 배경 음악을 잠깐씩 멈춘다. Web Audio 소리는 미디어 재생으로 치지 않아 배경 음악을 건드리지 않는다
 var actx = null, sbuf = {};
 function sfxInit() {
-  if (actx) { if (actx.state === 'suspended') { try { actx.resume(); } catch (e) {} } return; }
+  if (actx) { if (actx.state !== 'running') { try { actx.resume(); } catch (e) {} } return; }
   var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   try { actx = new AC(); } catch (e) { actx = null; return; }
   Object.keys(SOUNDS).forEach(function (n) {
@@ -1118,6 +1124,11 @@ function sfxInit() {
       actx.decodeAudioData(b, function (buf) { sbuf[n] = buf; }, function () {});
     }).catch(function () {});
   });
+}
+// 효과음 길을 다시 연다: 멈춘 소리 판을 깨우고 소리 없는 아주 짧은 소리를 한 번 낸다
+function sfxWake() {
+  if (!actx) return;
+  try { if (actx.state !== 'running') actx.resume(); var b = actx.createBuffer(1, 1, 22050), s0 = actx.createBufferSource(); s0.buffer = b; s0.connect(actx.destination); s0.start(0); } catch (e) {}
 }
 // 손끝 진동: 안드로이드만 된다 (아이폰 브라우저는 진동을 지원하지 않는다)
 function buzz(pattern) { if (save.buzz && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
@@ -1234,7 +1245,10 @@ var steamGl = null, steamOk = false, steamT = null;
 (function () {
   var c = $('steamGl'); if (!c) return;
   try {
-    var gl = c.getContext('webgl', { premultipliedAlpha: false, alpha: true }); if (!gl) return;
+    // 아이패드 사파리에서 비미리곱 알파 캔버스가 흰 네모로 보이는 일이 있어, 미리곱으로 그리고 첫 그림이 나오기 전엔 숨긴다. 맥락을 잃으면 김을 끈다
+    c.style.visibility = 'hidden';
+    var gl = c.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }); if (!gl) return;
+    c.addEventListener('webglcontextlost', function (e) { e.preventDefault(); steamOk = false; c.style.display = 'none'; });
     var vs = 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
     var fs = 'precision mediump float; varying vec2 v; uniform float t;' +
       'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }' +
@@ -1245,7 +1259,7 @@ var steamGl = null, steamOk = false, steamT = null;
       ' float s = wisp(x + 0.05, y, 0.0, 1.3) * 0.9 + wisp(x - 0.06, y, 2.4, 1.05) * 0.7;' +
       ' float br = 0.55 + 0.45 * n(vec2(x*6.0, y*5.0 - t*0.9));' +
       ' float fade = smoothstep(0.0, 0.10, y) * (1.0 - smoothstep(0.35, 0.95, y));' +
-      ' gl_FragColor = vec4(1.0, 0.98, 0.95, clamp(s * br * fade * edge * 0.62, 0.0, 1.0)); }';
+      ' float al = clamp(s * br * fade * edge * 0.62, 0.0, 1.0); gl_FragColor = vec4(vec3(1.0, 0.98, 0.95) * al, al); }';
     function sh(type, src) { var o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
     var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
     var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -1255,8 +1269,9 @@ var steamGl = null, steamOk = false, steamT = null;
 })();
 function steamDraw(t) {
   if (!steamOk) return;
-  var on = artMoveOn(); $('steamGl').style.visibility = on ? '' : 'hidden'; if (!on) return;
-  var gl = steamGl; gl.viewport(0, 0, 170, 150); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.uniform1f(steamT, t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  var on = artMoveOn(), gl = steamGl; if (!on || gl.isContextLost()) { $('steamGl').style.visibility = 'hidden'; return; }
+  gl.viewport(0, 0, 170, 150); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.uniform1f(steamT, t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  $('steamGl').style.visibility = '';
 }
 window.addEventListener('resize', homeFxFit);
 function renderHome() {
