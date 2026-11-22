@@ -318,11 +318,12 @@ main#cut #cutSkip { color: #d9d3c2; left: 14px; bottom: 24px; text-shadow: 0 1px
 @media (prefers-reduced-motion: reduce) { #cut .cutart img.turn { animation: none; } #cut .more { animation: none; } }
 #board { isolation: isolate; }
 .veil { z-index: 50; }
-.cell.cart { cursor: default; }
+.cell.cart { cursor: default; container-type: inline-size; }
 .cell.cart .wagon { position: absolute; inset: 4% 0 -2% 0; background: url("img/cart.webp") center / contain no-repeat; filter: drop-shadow(0 2px 0 rgba(10,14,28,.25)); }
 .cell.cart .need {
-  position: absolute; right: -5%; top: -5%; width: 42%; height: 42%; z-index: 3; border-radius: 50%; display: grid; place-items: center;
-  background: #fffaf0; color: var(--ink); border: 2px solid var(--ink); font-weight: 700; font-size: clamp(13px, 4.2vw, 20px); line-height: 1;
+  /* 칸 안 오른쪽 위에 딱 맞게. 글씨 크기는 화면 폭이 아니라 칸 폭을 따른다(아이패드처럼 넓은 화면에서 숫자가 동그라미 밖으로 튀어나오던 것) */
+  position: absolute; right: 2%; top: 2%; width: 40%; height: 40%; z-index: 3; border-radius: 50%; display: grid; place-items: center; box-sizing: border-box;
+  background: #fffaf0; color: var(--ink); border: 2px solid var(--ink); font-weight: 700; font-size: clamp(10px, 3.2vw, 15px); font-size: 25cqw; line-height: 1;
   font-variant-numeric: tabular-nums; box-shadow: 0 2px 0 rgba(10,14,28,.3); transition: background-color .15s, color .15s;
 }
 .cell.cart.full .need { background: var(--ink); color: #fffaf0; }
@@ -961,7 +962,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 19:21';
+var BUILD = '11월 22일 21:14';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
