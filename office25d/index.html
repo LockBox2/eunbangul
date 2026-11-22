@@ -31,7 +31,7 @@ import * as THREE from 'three';
 // 그림 캔버스 864×1536. 세 장 모두 같은 원점·크기(잘라내지 않음)
 const W = 864, H = 1536;
 // 움직임 한계(원본 픽셀): 제임스 README 기준 리나 가로 ±8, 세로 ±6. 배경·앞 레이어는 고정이 기본
-const LIMIT = { rina: [8, 6], bg: [9, 3], fg: [0, 0], rinaCam: 2 };
+const LIMIT = { rina: [8, 6], bg: [9, 3], ext: [16, 5], fg: [0, 0], rinaCam: 2 };
 // 카메라형(기본): 초점을 리나에 맞춘 카메라처럼 리나·책상은 그대로, 배경만 반대로 움직인다. 리나형: 리나만 움직인다(비교용)
 let amp = 1, cam2 = true, mode = 'auto';
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, premultipliedAlpha: true });
@@ -42,15 +42,16 @@ const scene = new THREE.Scene();
 const cam = new THREE.OrthographicCamera(0, W, 0, -H, -100, 100); // 위가 0, 아래로 -H
 const loader = new THREE.TextureLoader();
 function plane(url, z) {
-  const tex = loader.load(url, () => { loaded++; if (loaded === 3) { document.getElementById('info').textContent = info0; draw(); } });
+  const tex = loader.load(url, () => { loaded++; if (loaded === 4) { document.getElementById('info').textContent = info0; draw(); } });
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
   m.position.set(W / 2, -H / 2, z); scene.add(m); return m;
 }
 let loaded = 0;
-const info0 = '세 레이어 시험 · 단추 숨긴 뒤 화면을 두 번 누르면 다시 나와요';
+const info0 = '네 층 시험(창밖 추가) · 단추 숨긴 뒤 화면을 두 번 누르면 다시 나와요';
 // 배경은 움직일 때 가장자리가 드러나지 않게 살짝 키워 둔다 (배경도 움직이기 켰을 때만)
-const bg = plane('bg.webp', -20), rina = plane('rina.webp', -8), fg = plane('fg.webp', 0);
+// 네 층: 창밖(가장 멀다) / 방(유리 칸만 뚫림) / 리나 / 책상·안나
+const ext = plane('ext.webp', -30), bg = plane('room.webp', -20), rina = plane('rina.webp', -8), fg = plane('fg.webp', 0);
 // 화면 채우기: 게임 처음 화면처럼 cover, 아래쪽 80% 기준
 function fit() {
   const vw = window.innerWidth, vh = window.innerHeight; renderer.setSize(vw, vh);
@@ -84,7 +85,7 @@ document.getElementById('mode').addEventListener('click', () => {
 document.getElementById('amp').addEventListener('click', () => { amp = amp === 1 ? 1.5 : amp === 1.5 ? 0.5 : 1; document.getElementById('amp').textContent = '세기 ' + amp + '×'; bgScale(); kick(); });
 document.getElementById('layers').addEventListener('click', (e) => { cam2 = !cam2; e.target.textContent = cam2 ? '카메라형' : '리나형: 리나만 움직임'; e.target.classList.toggle('on', cam2); bgScale(); kick(); });
 // 배경이 움직여도 가장자리가 드러나지 않게 1.5% 키워 둔다
-function bgScale() { const k = cam2 ? 1 + 0.025 * Math.max(1, amp) : 1; bg.scale.set(k, k, 1); }
+function bgScale() { const a = Math.max(1, amp), k = cam2 ? 1 + 0.025 * a : 1, ke = cam2 ? 1 + 0.045 * a : 1; bg.scale.set(k, k, 1); ext.scale.set(ke, ke, 1); }
 bgScale();
 document.getElementById('hide').addEventListener('click', () => { document.querySelector('.hud').style.display = 'none'; document.getElementById('info').style.display = 'none'; });
 document.getElementById('view').addEventListener('dblclick', () => { document.querySelector('.hud').style.display = ''; document.getElementById('info').style.display = ''; });
@@ -101,6 +102,7 @@ function tick(t) {
   // 카메라형에서도 리나는 가로로만 2px 카메라 쪽으로 살짝: 배경과 반대로 움직여 층이 갈려 보인다 (세로로 움직이면 치마 아래 잘린 선이 드러난다)
   rina.position.x = W / 2 + cx * (cam2 ? LIMIT.rinaCam : LIMIT.rina[0]) * amp; rina.position.y = -H / 2 - cy * LIMIT.rina[1] * amp * rm;
   bg.position.x = W / 2 - cx * LIMIT.bg[0] * amp * bm; bg.position.y = -H / 2 + cy * LIMIT.bg[1] * amp * bm;
+  ext.position.x = W / 2 - cx * LIMIT.ext[0] * amp * bm; ext.position.y = -H / 2 + cy * LIMIT.ext[1] * amp * bm;
   draw();
   if (mode === 'auto' || Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002) requestAnimationFrame(tick); else running = false;
 }
