@@ -960,7 +960,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 14:41';
+var BUILD = '11월 22일 16:13';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1006,7 +1006,7 @@ function startInf() {
 }
 function alertNote(t) { $('champ').hidden = false; $('champ').textContent = t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, buzz: true, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null, homeMove: null };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, buzz: true, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null, homeMove: null, villageTry: false };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -1035,6 +1035,7 @@ function chapterOf(i) { return Math.floor(i / CHAPTER_SIZE); }
 function clearedIn(c) { var k = 0; for (var i = c * CHAPTER_SIZE; i < (c + 1) * CHAPTER_SIZE; i++) if (isCleared(i)) k++; return k; }
 // 모든 장 열어 두기는 시험용이다. 주소 끝에 ?test=1 을 붙였을 때만 보이고 먹는다
 var TEST = /[?&]test=1\b/.test(location.search);
+var VILLAGE_FLAG = /[?&]village\b/.test(location.search) ? true : /[?&]novillage\b/.test(location.search) ? false : null;
 function openAll() { return TEST && save.openAll; }
 // 다음 장은 앞 장을 16판 풀고, 그 장의 순회 길(있으면)까지 잡아야 열린다.
 // 이미 그 장을 풀던 사람은 막지 않는다 (순회 길이 생기기 전에 넘어간 기록)
@@ -1119,6 +1120,36 @@ function sfxInit() {
 }
 // 손끝 진동: 안드로이드만 된다 (아이폰 브라우저는 진동을 지원하지 않는다)
 function buzz(pattern) { if (save.buzz && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
+// ── 판 끝 마을 (시험: 주소에 ?village 를 붙이면 켜지고, ?novillage 로 끈다) ──
+function villageOn() { return !!save.villageTry; }
+var villageLoad = null;
+function villageGo(show, ms) {
+  if (!villageOn()) { setTimeout(show, ms); return; }
+  if (!villageLoad) villageLoad = new Promise(function (ok, no) { var sc = document.createElement('script'); sc.src = 'vil/village.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+  var snap = { n: P.n, reg: P.reg, sol: P.sol, carts: P.carts, big: P.big,
+    colors: houseOf.map(function (h) { return h.color; }), col: houseOf.map(function (h) { var k = COLORS.indexOf(h.color); return k < 0 ? 0 : k; }),
+    staff: P.sol.map(function (c, r) { return 'img/staff-' + P.staff[r % 9] + '.webp'; }),
+    seed: P.reg.map(function (row) { return row.join(''); }).join('').length * 131 + P.sol.join('').charCodeAt(0) * 17 + moves,
+    sound: villageSound };
+  var t0 = Date.now(), wait = Math.max(400, ms - 300);
+  villageLoad.then(function () {
+    setTimeout(function () { if (!$('play').classList.contains('on') || !done) return; snap.rect = boardEl.getBoundingClientRect(); Village.run(snap, show); }, Math.max(0, wait - (Date.now() - t0)));
+  }, function () { setTimeout(show, ms); });
+}
+function villageSound(kind, i) {
+  if (kind === 'bell') { play('bell'); return; }
+  if (!save.sound || !actx) return;
+  var t = actx.currentTime;
+  function tone(f0, f1, dur, vol, type, when) {
+    var o = actx.createOscillator(), g = actx.createGain(), w = t + (when || 0); o.type = type || 'triangle';
+    o.frequency.setValueAtTime(f0, w); o.frequency.exponentialRampToValueAtTime(f1, w + dur * 0.8);
+    g.gain.setValueAtTime(0.0001, w); g.gain.exponentialRampToValueAtTime(vol, w + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, w + dur);
+    o.connect(g); g.connect(actx.destination); o.start(w); o.stop(w + dur + 0.02);
+  }
+  if (kind === 'click') { tone(190 - (i % 3) * 18, 70, 0.12, 0.35); tone(2400, 1800, 0.03, 0.08, 'square', 0.03); }
+  else if (kind === 'pop') tone(260 + (i % 5) * 30, 520 + (i % 5) * 40, 0.09, 0.05, 'sine');
+  else if (kind === 'whoosh') tone(120, 320, 0.6, 0.06, 'sine');
+}
 function play(name) {
   if (name === 'place') buzz(12); else if (name === 'clash') buzz([28, 60, 28]); else if (name === 'clear') buzz([18, 40, 18, 40, 40]);
   if (!save.sound || !SOUNDS[name]) return;
@@ -1134,6 +1165,7 @@ function play(name) {
 
 // 화면 바꾸기
 function go(view) {
+  if (window.Village) Village.close();
   $('toTop').hidden = true;
   if (view !== 'play') document.documentElement.classList.remove('noscroll');
   if (paused) { paused = false; $('play').classList.remove('paused'); $('pauseVeil').classList.remove('on'); }
@@ -2141,7 +2173,7 @@ function finishDaily() {
   setTimeout(function () { play('clear'); }, 150);
   setTimeout(lbPush, 1500);
   dailyPush().then(function (d) { if (unr) return; if (d && d.me) $('rps').textContent = '오늘 ' + d.me.rank + '위 · 지금까지 ' + d.total + '명이 풀었습니다.' + (d.me.rank === 1 ? ' 내일 처음 화면에 이름이 걸립니다.' : ''); else if (save.lbName && lbOn) $('rps').textContent = '지금은 순위에 닿지 않습니다. 다음에 처음 화면을 열 때 다시 올립니다.'; });
-  setTimeout(function () { $('reportVeil').classList.add('on'); $('toChapters').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+  villageGo(function () { $('reportVeil').classList.add('on'); $('toChapters').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 function finishInf() {
@@ -2160,7 +2192,7 @@ function finishInf() {
   say('clear'); duck(true);
   setTimeout(function () { play('clear'); }, 150);
   setTimeout(lbPush, 1500);
-  setTimeout(function () { $('reportVeil').classList.add('on'); $('next').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+  villageGo(function () { $('reportVeil').classList.add('on'); $('next').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 function finish() {
@@ -2203,7 +2235,7 @@ function finish() {
   $('next').hidden = last || nextLocked;
   // 순회 길이 열렸는데 아직 안 잡았으면, 열린 그 판과 장의 끝에서 바로 들어가는 단추를 낸다
   $('toRoute').hidden = !askRoute; $('toRoute').dataset.c = ch;
-  setTimeout(function () { $('reportVeil').classList.add('on'); (askRoute ? $('toRoute') : last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+  villageGo(function () { $('reportVeil').classList.add('on'); (askRoute ? $('toRoute') : last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 
@@ -2866,6 +2898,7 @@ $('wipeNo').addEventListener('click', function () { $('wipeAsk').hidden = true; 
 $('wipeYes').addEventListener('click', function () { save.stage = 0; save.cleared = []; save.memoSeen = {}; save.ruleSeen = {}; save.cutSeen = {}; save.tutoSeen = {}; save.bells = {}; save.best = {}; save.routes = {}; save.wip = null; save.wipR = null; save.daily = {}; save.dailySent = {}; save.wipD = null; save.inf = { n: 0, b: 0 }; save.wipI = null; store(); $('wipeAsk').hidden = true; $('settingsVeil').classList.remove('on'); renderHome(); });
 
 load();
+if (VILLAGE_FLAG !== null) { save.villageTry = VILLAGE_FLAG; store(); }
 document.body.classList.toggle('noPat', save.pat === false);
 // 웹앱으로 올렸을 때: 한 번 받은 뒤에는 인터넷 없이도 열린다
 if ('serviceWorker' in navigator && location.protocol === 'https:' || location.hostname === 'localhost') { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
