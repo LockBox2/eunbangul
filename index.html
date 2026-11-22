@@ -111,8 +111,8 @@ button:disabled { opacity: .35; cursor: default; }
 #settingsVeil .sethead:first-of-type { margin-top: 4px; }
 /* 장 머리 그림 띠: 그 장 이야기의 첫 장면을 얇게 잘라 깐다 */
 .chapter.banded { padding-top: 0; overflow: hidden; }
-.chapter .chband { margin: 0 -12px; height: 74px; background-size: cover; background-position: 50% 32%; position: relative; }
-.chapter .chband::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(31,39,87,0) 35%, #26306a 100%); }
+.chapter .chband { margin: 0 -12px; height: 132px; background-size: cover; background-position: 50% 30%; position: relative; }
+.chapter .chband::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(38,48,106,0) 62%, #26306a 100%); }
 .chapter small { color: var(--thread); font-size: .85em; }
 .chapter.done { border-color: var(--silver); }
 .stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -945,7 +945,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 09:24';
+var BUILD = '11월 22일 09:31';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1033,6 +1033,8 @@ function stageOpen(i) {
 function unlocked(c) { return stageOpen(c * CHAPTER_SIZE) || clearedIn(c) > 0; }
 function solvedAll() { return save.cleared.length + Object.keys(save.daily || {}).length + ((save.inf && save.inf.n) || 0); }
 // 관리 고객: 본편을 다 마치면 134댁, 그 뒤로는 무한 순회 10판마다 한 댁씩 늘어난다
+// 장 그림 띠에서 보여 줄 높이(%): 얼굴과 주인공이 띠 안에 들어오게 그림마다 골랐다
+var BAND_Y = [12, 26, 27, 24, 24, 44, 22, 30, 26, 20, 24, 46];
 function households() { return 91 + Math.round(43 * save.cleared.length / PUZZLES.length) + Math.floor(((save.inf && save.inf.n) || 0) / 10); }
 function nextOpen() {
   for (var i = 0; i < PUZZLES.length; i++) if (!isCleared(i) && stageOpen(i)) return i;
@@ -1166,8 +1168,8 @@ function renderChapters() {
       var cl = isCleared(i); if (cl) got++;
       btns += '<button type="button" class="num' + (cl ? ' cleared' : '') + (i === here ? ' here' : '') + '" data-stage="' + i + '"' + (stageOpen(i) ? '' : ' disabled') + ' aria-label="' + (i + 1) + '번 순회표' + (cl ? ', 완료' : '') + (stageOpen(i) ? '' : ', 잠김') + '">' + (i + 1) + (cl ? '<span class="bl" aria-label="은방울 ' + bellsOf(i) + '개">' + '<i class="on"></i>'.repeat(bellsOf(i)) + '<i></i>'.repeat(3 - bellsOf(i)) + '</span>' + (save.best && save.best[i] ? '<small>' + clockShort(save.best[i]) + '</small>' : '') : '') + '</button>';
     }
-    var band = CUTS[c] && save.cutSeen[c] ? CUTS[c].cuts[0].img : '';
-    html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + (band ? ' banded' : '') + '">' + (band ? '<div class="chband" style="background-image:url(' + band + ')" aria-hidden="true"></div>' : '') + '<header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + (got ? ' · 은방울 ' + bellsIn(c) + ' / ' + (CHAPTER_SIZE * 3 + (ROUTES[c] ? 3 : 0)) : '') + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">' + (clearedIn(c - 1) === CHAPTER_SIZE && routeDue(c - 1) ? '앞 장의 순회 길을 잡으면 열립니다.' : '앞 장을 끝까지 풀면 열립니다.') + '</p>') + '<div class="stages">' + btns + '</div>' + (ROUTES[c] ? '<button type="button" class="routebtn' + (save.routes && save.routes[c] ? ' cleared' : '') + (routeOpen(c) && routeDue(c) ? ' due' : '') + '" data-route="' + c + '"' + (routeOpen(c) ? '' : ' disabled') + '><img src="img/donkey-base.webp" alt="">순회 길 잡기' + (save.routes && save.routes[c] ? '<span class="bl" aria-label="은방울 ' + save.routes[c] + '개">' + '<i class="on"></i>'.repeat(save.routes[c]) + '<i></i>'.repeat(3 - save.routes[c]) + '</span>' : '<small>' + (routeOpen(c) ? '잡으면 다음 장이 열립니다' : '이 장 스무 판을 다 풀면 열립니다') + '</small>') + '</button>' + (save.cutSeen.route && c === 0 ? '<p class="replay"><button type="button" data-replay="route">「' + CUTS.route.title + '」 이야기 다시 보기</button></p>' : '') : '') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote"><b>리나의 추신</b>' + POSTSCRIPTS[c][1].replace(/^추신\.\s*/, '') + '</p>' : '') + '</section>';
+    var band = CUTS[c] && save.cutSeen[c] && open ? CUTS[c].cuts[0].img : '';
+    html += '<section class="chapter' + (got === CHAPTER_SIZE ? ' done' : '') + (open ? '' : ' locked') + (band ? ' banded' : '') + '">' + (band ? '<div class="chband" style="background-image:url(' + band + ');background-position:50% ' + (BAND_Y[c] || 30) + '%" aria-hidden="true"></div>' : '') + '<header><h3>' + (c + 1) + '장 ' + sec + (many ? ' ' + nth : '') + '</h3><small class="num">' + n + '×' + n + (PUZZLES[first + CHAPTER_SIZE - 1][1] !== n ? '~' + PUZZLES[first + CHAPTER_SIZE - 1][1] + '×' + PUZZLES[first + CHAPTER_SIZE - 1][1] : '') + (PUZZLES[first][5] ? ' · 수레' : '') + (PUZZLES[first][6] ? ' · 큰 댁' : '') + ' · ' + got + ' / ' + CHAPTER_SIZE + (got ? ' · 은방울 ' + bellsIn(c) + ' / ' + (CHAPTER_SIZE * 3 + (ROUTES[c] ? 3 : 0)) : '') + '</small></header>' + (CUTS[c] && save.cutSeen[c] ? '<p class="replay"><button type="button" data-replay="' + c + '">「' + CUTS[c].title + '」 이야기 다시 보기</button></p>' : '') + (open ? '' : '<p class="lock">' + (clearedIn(c - 1) === CHAPTER_SIZE && routeDue(c - 1) ? '앞 장의 순회 길을 잡으면 열립니다.' : '앞 장을 끝까지 풀면 열립니다.') + '</p>') + '<div class="stages">' + btns + '</div>' + (ROUTES[c] ? '<button type="button" class="routebtn' + (save.routes && save.routes[c] ? ' cleared' : '') + (routeOpen(c) && routeDue(c) ? ' due' : '') + '" data-route="' + c + '"' + (routeOpen(c) ? '' : ' disabled') + '><img src="img/donkey-base.webp" alt="">순회 길 잡기' + (save.routes && save.routes[c] ? '<span class="bl" aria-label="은방울 ' + save.routes[c] + '개">' + '<i class="on"></i>'.repeat(save.routes[c]) + '<i></i>'.repeat(3 - save.routes[c]) + '</span>' : '<small>' + (routeOpen(c) ? '잡으면 다음 장이 열립니다' : '이 장 스무 판을 다 풀면 열립니다') + '</small>') + '</button>' + (save.cutSeen.route && c === 0 ? '<p class="replay"><button type="button" data-replay="route">「' + CUTS.route.title + '」 이야기 다시 보기</button></p>' : '') : '') + (isCleared(first + CHAPTER_SIZE - 1) && POSTSCRIPTS[c] ? '<p class="psnote"><b>리나의 추신</b>' + POSTSCRIPTS[c][1].replace(/^추신\.\s*/, '') + '</p>' : '') + '</section>';
   }
   var io = infOpen();
   html += '<section class="chapter infcard' + (io ? '' : ' locked') + '"><header><h3>그 뒤의 일지 · 무한 순회</h3><small class="num">9×9 · 어려움</small></header>' +
