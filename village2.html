@@ -5,30 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>은방울 · 판 끝 마을 연출 시안</title>
 <style>
-  html, body { margin: 0; height: 100%; background: linear-gradient(#f3ead9, #e4d4b8); font-family: system-ui, sans-serif; color: #3a3326; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: linear-gradient(#efe3cb, #dcc8a4); font-family: system-ui, sans-serif; color: #3a3326; overflow: hidden; -webkit-tap-highlight-color: transparent; }
   h1 { font-size: 16px; text-align: center; margin: 14px 0 2px; font-weight: 600; }
-  p.sub { font-size: 12px; text-align: center; margin: 0; color: #7a6f5c; min-height: 1.3em; }
+  p.sub { font-size: 12px; text-align: center; margin: 0; color: #7a6f5c; }
   #stage { position: absolute; left: 0; right: 0; top: 52px; bottom: 70px; overflow: hidden; }
+  /* 늦은 오후 햇빛 */
+  #stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 25% 15%, rgba(255, 214, 150, .35), rgba(255, 214, 150, 0) 60%); mix-blend-mode: soft-light; }
   #world { position: absolute; left: 50%; top: 50%; }
-  #world > * { position: absolute; display: block; pointer-events: none; }
-  #world .tint { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); mix-blend-mode: multiply; opacity: .8; }
-  #world .house { filter: brightness(.74) saturate(.75); transition: filter .5s; }
-  #world .house.lit { filter: brightness(1.04) saturate(1.05) drop-shadow(0 0 6px rgba(255, 214, 120, .75)); }
-  #world .house.lit.settle { filter: none; }
-  #world .need { font: 700 12px system-ui; color: #fff; background: #d9603f; border: 2px solid #fff; border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; box-shadow: 0 2px 4px rgba(0,0,0,.25); }
-  #world .smoke { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.85); filter: blur(2px); opacity: 0; }
+  #iso { position: absolute; left: 0; top: 0; filter: saturate(1.12) contrast(1.03); }
+  #iso > * { position: absolute; display: block; pointer-events: none; }
+  #iso .tint { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); mix-blend-mode: multiply; opacity: .85; }
+  #iso .house { filter: brightness(.72) saturate(.75); transition: filter .5s; transform-origin: 50% 100%; }
+  #iso .house.lit { filter: brightness(1.05) saturate(1.05) drop-shadow(0 0 5px rgba(255, 210, 110, .8)); }
+  #iso .house.lit.settle { filter: drop-shadow(0 0 2px rgba(255, 215, 130, .45)); }
+  #iso .rise { transform-origin: 50% 100%; }
+  #iso .need { font: 700 12px system-ui; color: #fff; background: #d9603f; border: 2px solid #fff; border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; box-shadow: 0 2px 4px rgba(0,0,0,.25); }
+  #iso .smoke { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.9); filter: blur(1.6px); opacity: 0; }
+  /* 위에서 본 판 (게임 판 모양) */
+  #flat { position: absolute; transform-origin: 50% 50%; display: grid; box-shadow: 0 0 0 3px #3b2f22, 0 8px 18px rgba(0,0,0,.25); background: #3b2f22; }
+  #flat i { display: block; position: relative; }
+  #flat i img { position: absolute; left: 8%; top: 8%; width: 84%; }
+  #flat i b { position: absolute; inset: 22%; border-radius: 50%; background: #d9603f; color: #fff; display: grid; place-items: center; font: 700 12px system-ui; }
   .hud { position: fixed; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
   .hud button { font: inherit; font-size: 15px; color: #fff6dc; background: #2e3a72; border: 1px solid #6b78b4; border-radius: 10px; padding: 10px 14px; }
   .hud button.go { background: #d9603f; border-color: #f3a184; }
   .hud button.on { outline: 2px solid #f3a184; }
-  #done { position: fixed; left: 50%; top: 58px; transform: translate(-50%, -8px); background: #fdf9ef; border: 1px solid #c9b994; border-radius: 10px; padding: 8px 14px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.15); opacity: 0; transition: opacity .4s, transform .4s; pointer-events: none; white-space: nowrap; }
+  #done { position: fixed; left: 50%; top: 58px; transform: translate(-50%, -8px); background: #fdf9ef; border: 1px solid #c9b994; border-radius: 10px; padding: 8px 14px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.15); opacity: 0; transition: opacity .4s, transform .4s; pointer-events: none; white-space: nowrap; z-index: 2; }
   #done.on { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
 <h1 id="title"></h1>
-<p class="sub" id="sub">판을 다 짜면 마을이 서고, 관리원이 각 댁에 들어갑니다</p>
-<div id="stage"><div id="world"></div></div>
+<p class="sub">판을 다 짜면 그 판이 마을이 되고, 관리원이 각 댁에 들어갑니다</p>
+<div id="stage"><div id="world"><div id="iso"></div><div id="flat"></div></div></div>
 <div id="done">모든 댁에 불이 켜졌습니다 · 딸랑</div>
 <div class="hud">
   <button type="button" data-b="0">7×7 판</button>
@@ -36,13 +45,11 @@
   <button type="button" id="play" class="go">판 완성!</button>
 </div>
 <script>
-// 판 데이터. sol[r] = r줄 관리원 칸, carts = 줄·칸·필요 수(세 글자씩), big = 큰 댁 글자
 var BOARDS = [
   { title: '로웰 고객 출장 · 72번 순회표', n: 7, reg: 'BBBDDACBBDDCACBBBDCACEBDDCCCEDDFFGCEEEFFGCEEFFFGG', sol: '5142036', carts: '641', big: '' },
   { title: '분기 보고회 · 236번 순회표', n: 9, reg: 'CCCAAABBBDDCCDAEEBDDCCDDEEBDDCCDDDEBDDDDDFFEEDDDDDFFEEDDDHFFGGGDDDHFHGGGDHHHHHGGG', sol: '382475061', carts: '452', big: 'D' }
 ];
 var COLORS = ['#f9e79d', '#c0e5bb', '#a6ddfb', '#dfc9fa', '#ffc5bc', '#ffd1a7', '#a3e9e2', '#c0d3ff', '#fbc4db'];
-// 맞닿은 댁끼리 다른 색 (게임에서는 색 거리로 더 꼼꼼히 고른다)
 function looks(B) {
   var n = B.n, m = 0, adj = {}, i;
   for (i = 0; i < n * n; i++) m = Math.max(m, B.reg.charCodeAt(i) - 64);
@@ -52,43 +59,34 @@ function looks(B) {
   for (var g = 0; g < m; g++) { for (var k = 0; k < order.length; k++) { var o = order[(k + g * 2) % 9], ok = true; for (var h in (adj[g] || {})) if (pick[h] === o) ok = false; if (ok && pick.indexOf(o) < 0) { pick[g] = o; break; } } if (pick[g] == null) pick[g] = g % 9; }
   return pick;
 }
-// 타일 윗면 마름모(원본 px): 가로 225, 세로 130
-var TW = 225, TH = 130;
+var TW = 225, TH = 130, TILT = Math.acos(TH / TW) * 180 / Math.PI;
 var A = {
-  grass: [227, 137], dirt: [218, 140], fence: [252, 138],
-  'tree-a': [180, 247], 'tree-b': [233, 240], flowers: [257, 187], lamp: [97, 185], sign: [144, 197], hedge: [141, 114],
+  grass: [227, 137], dirt: [218, 140], gstone: [222, 140], fence: [252, 138],
+  'tree-a': [180, 247], 'tree-b': [233, 240], flowers: [257, 187], lamp: [97, 185], sign: [144, 197], hedge: [141, 114], arch: [172, 172],
   donkeycart: [1005, 809]
 };
-// 집 그림(지붕 색 입힌 작은 판): 파일 크기, 화면 배율, 현관·굴뚝 위치(그림 안 비율)
-var HOUSE = {
-  'house-sa': { w: 200, h: 169, k: 0.92 * 252 / 200, door: [0.66, 0.78], chim: [0.40, 0.06] },
-  'house-sb': { w: 190, h: 190, k: 0.92 * 233 / 190, door: [0.53, 0.74], chim: [0.64, 0.06] },
-  'house-ma': { w: 210, h: 236, k: 0.92 * 274 / 210, door: [0.69, 0.82], chim: [0.63, 0.04] },
-  'house-mb': { w: 240, h: 236, k: 0.92 * 322 / 240, door: [0.61, 0.82], chim: [0.65, 0.04] },
-  mansion2: { w: 300, h: 294, k: 0.40 * 1180 / 300, door: [0.41, 0.80], chim: [0.43, 0.06] }
-};
-var HOUSES = ['house-sa', 'house-sb', 'house-ma', 'house-mb'];
-var cur = 1, anims = [], timers = [], playing = false, ac = null, bellBuf = null;
+// 집 그림 정보(vil/h/meta.json과 같은 값): 폭·높이, 타일 대비 폭 배율, 굴뚝 위치
+var HM = {"sa-A": {"w": 240, "h": 203, "fw": 0.95, "chim": [0.38, 0.025]}, "sa-B": {"w": 240, "h": 251, "fw": 0.95, "chim": [0.718, 0.016]}, "sb-A": {"w": 233, "h": 233, "fw": 0.9, "chim": [0.654, 0.021]}, "sb-B": {"w": 240, "h": 273, "fw": 0.9, "chim": [0.294, 0.015]}, "ma-A": {"w": 240, "h": 270, "fw": 1.0, "chim": [0.635, 0.019]}, "ma-B": {"w": 240, "h": 290, "fw": 1.0, "chim": [0.714, 0.014]}, "mb-A": {"w": 240, "h": 236, "fw": 1.1, "chim": [0.642, 0.021]}, "mb-B": {"w": 240, "h": 250, "fw": 1.1, "chim": [0.672, 0.016]}, "farm-A": {"w": 240, "h": 206, "fw": 1.05, "chim": [0.622, 0.019]}, "farm-B": {"w": 201, "h": 141, "fw": 1.05, "chim": [0.33, 0.035]}, "bake-A": {"w": 240, "h": 273, "fw": 1.0, "chim": [0.685, 0.015]}, "bake-B": {"w": 218, "h": 165, "fw": 1.0, "chim": [0.514, 0.03]}, "half-A": {"w": 240, "h": 302, "fw": 0.95, "chim": [0.711, 0.013]}, "half-B": {"w": 207, "h": 174, "fw": 0.95, "chim": [0.267, 0.023]}, "town-A": {"w": 240, "h": 461, "fw": 0.6, "chim": [0.301, 0.009]}, "town-B": {"w": 140, "h": 175, "fw": 0.6, "chim": [0.398, 0.029]}, "chap-A": {"w": 240, "h": 272, "fw": 1.0, "chim": [0.642, 0.015]}, "chap-B": {"w": 194, "h": 184, "fw": 1.0, "chim": [0.32, 0.027]}, "manor-A": {"w": 320, "h": 314, "fw": 2.0, "chim": [0.413, 0.013]}, "manor-B": {"w": 248, "h": 215, "fw": 2.0, "chim": [0.644, 0.023]}, "mill-A": {"w": 240, "h": 235, "fw": 1.3, "chim": [0.606, 0.017]}, "mill-B": {"w": 233, "h": 176, "fw": 1.3, "chim": [0.39, 0.028]}};
+var KINDS = ['sa', 'sb', 'ma', 'mb', 'farm', 'bake', 'half', 'town', 'chap'];
+var cur = 1, anims = [], loops = [], timers = [], playing = false, ac = null, bellBuf = null;
 
-function add(list, z, tag, cls, css) {
-  var el = document.createElement(tag); if (cls) el.className = cls; el.style.cssText = css;
-  list.push({ z: z, el: el }); return el;
-}
+function add(list, z, tag, cls, css) { var el = document.createElement(tag); if (cls) el.className = cls; el.style.cssText = css; list.push({ z: z, el: el }); return el; }
 function px(v) { return v.toFixed(1) + 'px'; }
 
 function build(k) {
   stopAll();
-  var B = BOARDS[k], n = B.n, w = document.getElementById('world'), L = looks(B);
+  var B = BOARDS[k], n = B.n, L = looks(B), iso = document.getElementById('iso'), flat = document.getElementById('flat');
   document.getElementById('title').textContent = B.title;
   document.getElementById('done').classList.remove('on');
   var st = document.getElementById('stage'), sw = st.clientWidth, sh = st.clientHeight, N = n + 4;
-  // 판과 안쪽 흙길까지 화면 폭에 맞춘다. 바깥 숲 줄은 화면 밖으로 넘쳐도 된다
   var s = Math.min(sw / ((n + 1.6) * TW), (sh - 20) / ((n + 1.6) * TH + 160));
   var tw = TW * s, th = TH * s, oy = -(N * th) / 2 + 40 * s;
   var carts = {}; for (var q = 0; q < B.carts.length; q += 3) carts[B.carts[q] + ',' + B.carts[q + 1]] = B.carts[q + 2];
   var seed = 11 + k * 17; function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
-  function at(r, c) { return { x: (c - r) * tw / 2, y: oy + (c + r + 4) * th / 2 }; } // 마름모 위 꼭짓점 (바깥 두 줄 포함)
-  // 큰 저택(2×2): 큰 댁 관리원 칸을 포함하고 네 칸이 모두 큰 댁이며 나머지 셋이 빈 묶음. 그림은 앞(오른쪽 아래) 칸에 세운다
+  function at(r, c) { return { x: (c - r) * tw / 2, y: oy + (c + r + 4) * th / 2 }; }
+  function img(list, z, name, x, baseY, k2, cls, extra) { var a = A[name], iw = a[0] * s * k2, ih = a[1] * s * k2; var e = add(list, z, 'img', cls || '', 'left:' + px(x - iw / 2) + ';top:' + px(baseY - ih) + ';width:' + px(iw) + (extra || '')); e.src = 'vil/' + name + '.webp'; e._h = ih; return e; }
+  function tile(list, z, name, p) { var e = add(list, z, 'img', '', 'left:' + px(p.x - 227 * s / 2) + ';top:' + px(p.y) + ';width:' + px(227 * s)); e.src = 'vil/' + name + '.webp'; return e; }
+  // 큰 저택(2×2) 자리
   var mAt = null, cover = {};
   if (B.big) for (var rr = 0; rr < n && !mAt; rr++) { var cc = Number(B.sol[rr]); if (B.reg[rr * n + cc] !== B.big) continue;
     [[0, 0], [-1, 0], [0, -1], [-1, -1]].forEach(function (o) { if (mAt) return; var r0 = rr + o[0], c0 = cc + o[1]; if (r0 < 0 || c0 < 0 || r0 + 1 >= n || c0 + 1 >= n) return;
@@ -96,126 +94,135 @@ function build(k) {
       var ok = cells.every(function (p) { return B.reg[p[0] * n + p[1]] === B.big && !carts[p[0] + ',' + p[1]] && (Number(B.sol[p[0]]) !== p[1] || (p[0] === rr && p[1] === cc)); });
       if (ok) { mAt = (r0 + 1) + ',' + (c0 + 1); cells.forEach(function (p) { if (p[0] !== r0 + 1 || p[1] !== c0 + 1) cover[p[0] + ',' + p[1]] = 1; }); } });
   }
-  var list = [], seq = { tint: [], fence: [], drop: [], staff: [] }, r, c, p, z;
-  // 바깥 두 줄: 안쪽은 흙길(네 모서리 가로등), 바깥은 잔디와 숲, 앞 모서리에 은방울 표지판
+  var list = [], seq = { tint: [], fence: [], rise: [], staff: [] }, r, c, p, z;
+  // 바깥: 안쪽 한 줄은 흙길(모서리 가로등), 바깥 한 줄은 숲, 앞 모서리 표지판, 왼쪽에 물레방아
   for (r = -2; r < n + 2; r++) for (c = -2; c < n + 2; c++) {
     if (r >= 0 && c >= 0 && r < n && c < n) continue;
     p = at(r, c); z = (r + c + 4) * 10;
     var road = r >= -1 && c >= -1 && r <= n && c <= n;
-    add(list, z, 'img', '', 'left:' + px(p.x - 227 * s / 2) + ';top:' + px(p.y) + ';width:' + px(227 * s)).src = 'vil/' + (road ? 'dirt' : 'grass') + '.webp';
-    var nm = null, kk = 0.62, base = 0.78;
-    if (!road) { var x = rnd(); nm = x < 0.42 ? 'tree-a' : x < 0.62 ? 'tree-b' : x < 0.66 ? 'flowers' : null; if (r === n + 1 && c === n + 1) nm = 'sign'; if (nm === 'sign') kk = 0.55; if (nm === 'flowers') kk = 0.6; }
-    else if ((r === -1 || r === n) && (c === -1 || c === n)) { nm = 'lamp'; kk = 0.55; base = 0.6; }
-    if (nm) { var a = A[nm], iw = a[0] * s * kk, ih = a[1] * s * kk; add(list, z + 5, 'img', '', 'left:' + px(p.x - iw / 2) + ';top:' + px(p.y + th * base - ih) + ';width:' + px(iw)).src = 'vil/' + nm + '.webp'; }
+    tile(list, z, road ? 'dirt' : 'grass', p);
+    if (!road) {
+      if (r === Math.floor(n / 2) && c === -2) { var mm = HM['mill-B'], mw = tw * mm.fw, mh = mm.h * mw / mm.w, mi = add(list, z + 5, 'img', '', 'left:' + px(p.x - mw / 2) + ';top:' + px(p.y + th * 0.85 - mh) + ';width:' + px(mw)); mi.src = 'vil/h/mill-B.webp'; continue; }
+      var x = rnd(), nm = r === n + 1 && c === n + 1 ? 'sign' : x < 0.45 ? 'tree-a' : x < 0.68 ? 'tree-b' : x < 0.72 ? 'flowers' : null;
+      if (nm) img(list, z + 5, nm, p.x, p.y + th * 0.78, nm === 'sign' ? 0.55 : nm === 'flowers' ? 0.55 : 0.62);
+    } else if ((r === -1 || r === n) && (c === -1 || c === n)) img(list, z + 5, 'lamp', p.x, p.y + th * 0.6, 0.55);
   }
   // 판 안
   for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
     p = at(r, c); z = (r + c + 4) * 10;
-    var g = B.reg.charCodeAt(r * n + c) - 65, col = L[g], depth = r + c;
-    add(list, z, 'img', '', 'left:' + px(p.x - 227 * s / 2) + ';top:' + px(p.y) + ';width:' + px(227 * s)).src = 'vil/grass.webp';
+    var g = B.reg.charCodeAt(r * n + c) - 65, col = L[g], depth = r + c, key = r + ',' + c;
+    var isStaff = Number(B.sol[r]) === c, isHouse = mAt === key || (isStaff && !cover[key]);
+    var tl = tile(list, z, isHouse ? 'gstone' : 'grass', p);
     seq.tint.push(add(list, z + 1, 'div', 'tint', 'left:' + px(p.x - tw / 2) + ';top:' + px(p.y) + ';width:' + px(tw) + ';height:' + px(th) + ';background:' + COLORS[col]));
-    // 댁 경계에 울타리: 오른쪽 아래 변(옆 칸과), 왼쪽 아래 변(아래 칸과, 좌우 뒤집기)
     var fw = tw / 2 * 1.1, fh = A.fence[1] * fw / A.fence[0];
-    if (c + 1 < n && B.reg[r * n + c + 1] !== B.reg[r * n + c]) {
-      var f = add(list, z + 8, 'img', '', 'left:' + px(p.x - fw * 0.05) + ';top:' + px(p.y + th - fh * 0.98) + ';width:' + px(fw) + ';transform-origin:50% 100%;opacity:0');
-      f.src = 'vil/fence.webp'; seq.fence.push({ el: f, d: depth, flip: false });
-    }
-    if (r + 1 < n && B.reg[(r + 1) * n + c] !== B.reg[r * n + c]) {
-      var f2 = add(list, z + 8, 'img', '', 'left:' + px(p.x - tw / 2 - fw * 0.05) + ';top:' + px(p.y + th - fh * 0.98) + ';width:' + px(fw) + ';transform-origin:50% 100%;opacity:0');
-      f2.src = 'vil/fence.webp'; seq.fence.push({ el: f2, d: depth, flip: true });
-    }
-    var isStaff = Number(B.sol[r]) === c, name = null, house = null;
-    if (mAt === r + ',' + c) name = 'mansion2';
-    else if (cover[r + ',' + c]) name = null;
-    else if (isStaff) name = B.big && B.reg[r * n + c] === B.big ? 'house-mb' : HOUSES[(g * 3 + r) % 4];
-    if (name) {
-      var H = HOUSE[name], hw = H.w * s * H.k, hh = H.h * s * H.k, by = name === 'mansion2' ? p.y + th : p.y + th * 0.8;
+    if (c + 1 < n && B.reg[r * n + c + 1] !== B.reg[r * n + c]) { var f = add(list, z + 8, 'img', '', 'left:' + px(p.x - fw * 0.05) + ';top:' + px(p.y + th - fh * 0.98) + ';width:' + px(fw) + ';transform-origin:50% 100%;opacity:0'); f.src = 'vil/fence.webp'; seq.fence.push({ el: f, d: depth, flip: false }); }
+    if (r + 1 < n && B.reg[(r + 1) * n + c] !== B.reg[r * n + c]) { var f2 = add(list, z + 8, 'img', '', 'left:' + px(p.x - tw / 2 - fw * 0.05) + ';top:' + px(p.y + th - fh * 0.98) + ';width:' + px(fw) + ';transform-origin:50% 100%;opacity:0'); f2.src = 'vil/fence.webp'; seq.fence.push({ el: f2, d: depth, flip: true }); }
+    var house = null;
+    if (isHouse) {
+      var id = mAt === key ? (rnd() < 0.5 ? 'manor-A' : 'manor-B') : KINDS[(g * 5 + r * 3 + c) % KINDS.length] + (rnd() < 0.5 ? '-A' : '-B');
+      var M = HM[id], hw = tw * M.fw, hh = M.h * hw / M.w, by = mAt === key ? p.y + th : p.y + th * 0.82;
       house = add(list, z + 5, 'img', 'house', 'left:' + px(p.x - hw / 2) + ';top:' + px(by - hh) + ';width:' + px(hw) + ';opacity:0');
-      house.src = 'vil/r/' + name + '-' + col + '.webp';
-      house._door = { x: p.x - hw / 2 + hw * H.door[0], y: by - hh + hh * H.door[1] };
-      house._chim = { x: p.x - hw / 2 + hw * H.chim[0], y: by - hh + hh * H.chim[1] };
-      house._smoke = [0, 1, 2].map(function () { return add(list, z + 6, 'div', 'smoke', 'left:' + px(house._chim.x - 4) + ';top:' + px(house._chim.y - 4)); });
-      if (name === 'mansion2') house._mansion = true;
-      seq.drop.push({ el: house, d: depth, h: hh });
-    } else if (carts[r + ',' + c]) {
-      var a2 = A.donkeycart, cw = a2[0] * s * 0.27, ch = a2[1] * s * 0.27;
-      var cart = add(list, z + 5, 'img', '', 'left:' + px(p.x - cw / 2) + ';top:' + px(p.y + th * 0.82 - ch) + ';width:' + px(cw) + ';opacity:0');
-      cart.src = 'vil/donkeycart.webp'; seq.drop.push({ el: cart, d: depth, h: ch });
-      add(list, z + 7, 'b', 'need', 'left:' + px(p.x + cw * 0.18) + ';top:' + px(p.y + th * 0.82 - ch - 14)).textContent = carts[r + ',' + c];
-    } else if (!cover[r + ',' + c]) {
-      var x2 = rnd(), dn = x2 < 0.14 ? 'tree-b' : x2 < 0.22 ? 'tree-a' : x2 < 0.36 ? 'flowers' : null;
-      if (dn) { var a3 = A[dn], dw = a3[0] * s * 0.55, dh = a3[1] * s * 0.55;
-        var dec = add(list, z + 5, 'img', '', 'left:' + px(p.x - dw / 2) + ';top:' + px(p.y + th * 0.78 - dh) + ';width:' + px(dw) + ';opacity:0');
-        dec.src = 'vil/' + dn + '.webp'; seq.drop.push({ el: dec, d: depth, h: dh, deco: true }); }
+      house.src = 'vil/h/' + id + '-' + col + '.webp';
+      house._door = { x: p.x, y: by - th * 0.15 };
+      house._chim = { x: p.x - hw / 2 + hw * M.chim[0], y: by - hh + hh * M.chim[1] };
+      house._smoke = [0, 1, 2].map(function () { return add(list, z + 6, 'div', 'smoke', 'left:' + px(house._chim.x - 3.5) + ';top:' + px(house._chim.y - 6)); });
+      house._mansion = mAt === key;
+      seq.rise.push({ el: house, d: depth });
+    } else if (carts[key]) {
+      var cart = img(list, z + 5, 'donkeycart', p.x, p.y + th * 0.8, 0.18, 'rise', ';opacity:0'); seq.rise.push({ el: cart, d: depth });
+      var bd = add(list, z + 7, 'b', 'need', 'left:' + px(p.x + tw * 0.12) + ';top:' + px(p.y + th * 0.8 - cart._h - 12) + ';opacity:0'); bd.textContent = carts[key]; seq.rise.push({ el: bd, d: depth, pop: true });
+    } else if (!cover[key]) {
+      // 마당: 집터 안 빈칸을 손질된 정원으로 채운다
+      var y = rnd(), dn = y < 0.22 ? 'flowers' : y < 0.36 ? 'hedge' : y < 0.52 ? 'tree-b' : y < 0.62 ? 'tree-a' : y < 0.66 ? 'arch' : y < 0.69 ? 'lamp' : null;
+      if (y >= 0.69 && y < 0.82) tl.src = 'vil/gstone.webp'; // 돌 깔린 마당
+      if (dn) { var e = img(list, z + 5, dn, p.x, p.y + th * 0.78, dn === 'hedge' ? 0.5 : dn === 'lamp' ? 0.5 : dn === 'arch' ? 0.48 : 0.52, 'rise', ';opacity:0'); seq.rise.push({ el: e, d: depth, deco: true }); }
     }
     if (isStaff) {
-      // 관리원 말: 판에서처럼 칸 위에 서 있다가, 집이 서면 현관으로 들어간다
-      var tk = tw * 0.62;
-      var tok = add(list, 9000 + depth, 'img', '', 'left:' + px(p.x - tk / 2) + ';top:' + px(p.y + th * 0.5 - tk * 0.92) + ';width:' + px(tk) + ';transform-origin:50% 100%');
+      var tk = tw * 0.62, tok = add(list, 9000 + depth, 'img', '', 'left:' + px(p.x - tk / 2) + ';top:' + px(p.y + th * 0.5 - tk * 0.92) + ';width:' + px(tk) + ';transform-origin:50% 100%;opacity:0');
       tok.src = 'img/staff-' + (((r * 7 + k) % 9) + 1) + '.webp';
       seq.staff.push({ el: tok, d: depth, house: house, x: p.x, y: p.y + th * 0.5 });
     }
   }
-  // 큰 저택 뒤 칸에 있던 관리원은 저택에 들어간다
-  var mansion = null; seq.drop.forEach(function (d) { if (d.el._mansion) mansion = d.el; });
+  var mansion = null; seq.rise.forEach(function (d) { if (d.el._mansion) mansion = d.el; });
   seq.staff.forEach(function (t) { if (!t.house) t.house = mansion; });
   list.sort(function (a, b) { return a.z - b.z; });
-  w.innerHTML = ''; list.forEach(function (i) { w.appendChild(i.el); });
-  w._seq = seq;
+  iso.innerHTML = ''; list.forEach(function (i) { iso.appendChild(i.el); });
+  iso.style.opacity = 0;
+  // 위에서 본 판: 게임 판 그대로. 기울면 마을 각도와 딱 겹친다
+  var a = tw / Math.SQRT2, side = n * a, cy = oy + (n + 4) * th / 2;
+  var start = Math.min(sw * 0.9, sh * 0.72) / side;
+  flat.style.cssText = 'left:' + px(-side / 2) + ';top:' + px(cy - side / 2) + ';width:' + px(side) + ';height:' + px(side) + ';grid-template-columns:repeat(' + n + ',1fr);gap:' + px(Math.max(0.6, a * 0.03)) + ';transform:translateY(' + px(-cy) + ') scale(' + start.toFixed(3) + ');opacity:1';
+  var fh2 = '';
+  for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+    var gg = B.reg.charCodeAt(r * n + c) - 65, bw = Math.max(1, a * 0.07), sh2 = [];
+    if (r + 1 < n && B.reg[(r + 1) * n + c] !== B.reg[r * n + c]) sh2.push('inset 0 -' + px(bw) + ' 0 #3b2f22');
+    if (c + 1 < n && B.reg[r * n + c + 1] !== B.reg[r * n + c]) sh2.push('inset -' + px(bw) + ' 0 0 #3b2f22');
+    var inner = Number(B.sol[r]) === c ? '<img src="img/staff-' + (((r * 7 + k) % 9) + 1) + '.webp" alt="">' : carts[r + ',' + c] ? '<b>' + carts[r + ',' + c] + '</b>' : '';
+    fh2 += '<i style="background:' + COLORS[L[gg]] + (sh2.length ? ';box-shadow:' + sh2.join(',') : '') + '">' + inner + '</i>';
+  }
+  flat.innerHTML = fh2;
+  flat._cy = cy; flat._start = start;
+  iso._seq = seq;
   document.getElementById('play').textContent = '판 완성!';
 }
 
-function stopAll() { timers.forEach(clearTimeout); timers = []; anims.forEach(function (a) { try { a.cancel(); } catch (e) {} }); anims = []; playing = false; }
+function stopAll() { timers.forEach(clearTimeout); timers = []; anims.concat(loops).forEach(function (a) { try { a.cancel(); } catch (e) {} }); anims = []; loops = []; playing = false; }
 function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
-function an(el, kf, opt) { var o = { fill: 'forwards', easing: 'ease-out' }; for (var key in opt) o[key] = opt[key]; var a = el.animate(kf, o); anims.push(a); return a; }
+function an(el, kf, opt) { var o = { fill: 'forwards', easing: 'ease-out' }; for (var key in opt) o[key] = opt[key]; var a = el.animate(kf, o); (o.iterations === Infinity ? loops : anims).push(a); return a; }
 
-// 소리: 문 닫히는 "딸깍"은 짧게 만들어 낸다. 마지막은 은방울
 function audio() {
   if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); fetch('snd/bell.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (b) { ac.decodeAudioData(b, function (d) { bellBuf = d; }); }); } catch (e) {} }
   if (ac && ac.state === 'suspended') ac.resume();
 }
-function click(i) {
-  if (!ac) return; var t = ac.currentTime;
-  var o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(190 - (i % 3) * 18, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.09);
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.14);
-  var len = Math.floor(0.03 * ac.sampleRate), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0); for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3);
-  var src = ac.createBufferSource(), g2 = ac.createGain(), hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800; g2.gain.value = 0.25;
-  src.buffer = buf; src.connect(hp); hp.connect(g2); g2.connect(ac.destination); src.start(t + 0.03);
+function tone(f0, f1, dur, vol, type, when) {
+  var t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'triangle';
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.8);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.02);
 }
+function click(i) { if (!ac) return; tone(190 - (i % 3) * 18, 70, 0.12, 0.35); tone(2400, 1800, 0.03, 0.08, 'square', 0.03); }
+function pop(i) { if (!ac) return; tone(260 + (i % 5) * 30, 520 + (i % 5) * 40, 0.09, 0.05, 'sine'); }
+function whoosh() { if (!ac) return; tone(120, 320, 0.6, 0.06, 'sine'); }
 function bell() { if (!ac || !bellBuf) return; var b = ac.createBufferSource(), g = ac.createGain(); g.gain.value = 0.8; b.buffer = bellBuf; b.connect(g); g.connect(ac.destination); b.start(); }
+function smokeLoop(h) {
+  h._smoke.forEach(function (sm, j) { an(sm, [{ opacity: 0, transform: 'translate(0,0) scale(.6)' }, { opacity: .8, offset: .2 }, { opacity: 0, transform: 'translate(' + (j - 1) * 3 + 'px,-' + (20 + j * 5) + 'px) scale(2.3)' }], { duration: 2200, delay: j * 730, iterations: Infinity, fill: 'both' }); });
+}
 function finish() { bell(); document.getElementById('done').classList.add('on'); playing = false; document.getElementById('play').textContent = '다시 보기'; }
 
 function play() {
-  var seq = document.getElementById('world')._seq; if (!seq) return;
+  var iso = document.getElementById('iso'), flat = document.getElementById('flat'), seq = iso._seq; if (!seq) return;
   audio(); playing = true; document.getElementById('play').textContent = '건너뛰기';
-  // 1) 판 색이 걷히고 댁 경계에 울타리가 선다
-  seq.tint.forEach(function (t) { an(t, [{ opacity: .8 }, { opacity: 0 }], { duration: 500 }); });
-  seq.fence.forEach(function (f) { var fl = f.flip ? 'scaleX(-1) ' : '';
-    an(f.el, [{ opacity: 0, transform: fl + 'scaleY(0)' }, { opacity: 1, transform: fl + 'scaleY(1.08)', offset: .7 }, { opacity: 1, transform: fl + 'scaleY(1)' }], { duration: 320, delay: 150 + f.d * 28 }); });
-  // 2) 집·수레·나무가 앞줄부터 떨어진다 (불 꺼진 채로)
-  seq.drop.forEach(function (d) { var y = -Math.max(18, d.h * 0.35);
-    an(d.el, [{ opacity: 0, transform: 'translateY(' + y + 'px)' }, { opacity: 1, transform: 'translateY(2px)', offset: .75 }, { opacity: 1, transform: 'none' }], { duration: 380, delay: (d.deco ? 620 : 500) + d.d * 32, easing: 'cubic-bezier(.4,0,.6,1)' }); });
-  // 3) 관리원이 차례로 현관에 들어가면 "딸깍", 창문에 불이 켜지고 굴뚝에 연기
-  var order = seq.staff.slice().sort(function (a, b) { return a.d - b.d; }), t0 = 1500, gap = 230, last = t0;
+  // 1) 판이 기울어 마을 각도가 된다 (0 ~ 0.9초)
+  whoosh();
+  an(flat, [{ transform: 'translateY(' + (-flat._cy) + 'px) scale(' + flat._start + ') rotateX(0deg) rotateZ(0deg)' }, { transform: 'translateY(0px) scale(1) rotateX(' + TILT + 'deg) rotateZ(45deg)' }], { duration: 850, easing: 'cubic-bezier(.5,0,.3,1)' });
+  an(iso, [{ opacity: 0 }, { opacity: 1 }], { duration: 250, delay: 750 });
+  an(flat, [{ opacity: 1 }, { opacity: 0 }], { duration: 250, delay: 850 });
+  seq.staff.forEach(function (t) { an(t.el, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }], { duration: 200, delay: 850 }); });
+  // 2) 판 색이 걷히며 잔디가 되고, 댁 경계에 울타리가 솟는다
+  var T = 1050;
+  seq.tint.forEach(function (t) { an(t, [{ opacity: .85 }, { opacity: 0 }], { duration: 550, delay: T }); });
+  seq.fence.forEach(function (f) { var fl = f.flip ? 'scaleX(-1) ' : ''; an(f.el, [{ opacity: 0, transform: fl + 'scaleY(0)' }, { opacity: 1, transform: fl + 'scaleY(1.12)', offset: .65 }, { opacity: 1, transform: fl + 'scaleY(1)' }], { duration: 320, delay: T + 100 + f.d * 26 }); });
+  // 3) 집·수레·마당이 땅에서 쑥 솟아난다 (앞줄부터)
+  var T2 = T + 300, maxD = 0;
+  seq.rise.forEach(function (d, i) { maxD = Math.max(maxD, d.d); var dl = T2 + d.d * 34 + (d.deco ? 120 : 0);
+    if (d.pop) { an(d.el, [{ opacity: 0, transform: 'scale(.3)' }, { opacity: 1, transform: 'none' }], { duration: 250, delay: dl + 250 }); return; }
+    an(d.el, [{ opacity: 0, transform: 'scale(.7, .05)' }, { opacity: 1, transform: 'scale(.96, 1.14)', offset: .6 }, { opacity: 1, transform: 'scale(1.02, .97)', offset: .82 }, { opacity: 1, transform: 'none' }], { duration: 430, delay: dl, easing: 'cubic-bezier(.3,.7,.4,1)' });
+    if (!d.deco) later(dl, function () { pop(i); });
+  });
+  // 4) 관리원이 차례로 현관에 들어가면 "딸깍", 창에 불이 켜지고 굴뚝 연기가 계속 오른다
+  var order = seq.staff.slice().sort(function (a, b) { return a.d - b.d; }), t0 = T2 + maxD * 34 + 450, gap = 210, last = t0;
   order.forEach(function (t, i) {
     var at = t0 + i * gap; last = at;
     var h = t.house, dx = h ? h._door.x - t.x : 0, dy = h ? h._door.y - t.y : 0;
-    an(t.el, [{ transform: 'none', opacity: 1 }, { transform: 'translate(' + dx * .6 + 'px,' + (dy * .6 - 8) + 'px) scale(.8)', opacity: 1, offset: .55 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.35)', opacity: 0 }], { duration: 420, delay: at, easing: 'ease-in' });
-    later(at + 420, function () {
-      click(i);
-      if (!h) return; h.classList.add('lit');
-      later(900, function () { h.classList.add('settle'); });
-      h._smoke.forEach(function (sm, j) { an(sm, [{ opacity: 0, transform: 'translate(0,0) scale(.6)' }, { opacity: .8, offset: .25 }, { opacity: 0, transform: 'translate(' + (j - 1) * 3 + 'px,-' + (18 + j * 6) + 'px) scale(2.2)' }], { duration: 1400, delay: j * 260, fill: 'both' }); });
-    });
+    an(t.el, [{ transform: 'none', opacity: 1 }, { transform: 'translate(' + dx * .5 + 'px,' + (dy * .5 - 10) + 'px) scale(.85)', opacity: 1, offset: .45 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.3)', opacity: 0 }], { duration: 430, delay: at, easing: 'ease-in' });
+    later(at + 430, function () { click(i); if (!h || h.classList.contains('lit')) return; h.classList.add('lit'); later(900, function () { h.classList.add('settle'); }); smokeLoop(h); });
   });
-  // 4) 모든 댁에 불이 켜지면 은방울
-  later(last + 900, finish);
+  later(last + 950, finish);
 }
 function skip() {
   timers.forEach(clearTimeout); timers = [];
   anims.forEach(function (a) { try { a.finish(); } catch (e) {} });
-  document.querySelectorAll('#world .house').forEach(function (h) { h.classList.add('lit', 'settle'); });
+  document.querySelectorAll('#iso .house').forEach(function (h) { if (!h.classList.contains('lit')) { h.classList.add('lit', 'settle'); smokeLoop(h); } });
   finish();
 }
 document.getElementById('play').addEventListener('click', function () {
