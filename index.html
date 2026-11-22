@@ -495,7 +495,12 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 #home { padding: 0; gap: 0; background: #2b1d1a; text-align: left; }
 #home .stagebox { position: relative; flex: 1; min-height: 240px; overflow: hidden; }
 #home .ver { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: rgba(255,250,235,.85); text-shadow: 0 1px 2px rgba(0,0,0,.7); pointer-events: none; }
-#home .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 80%; }
+/* 처음 화면 그림: 네 층(창밖 정원·방·리나·책상)을 겹쳐 기울기에 따라 조금씩 민다. 자리는 homeFxFit이 cover(50% 80%)로 잡는다 */
+#home .scene { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+#home .scene .lay { position: absolute; inset: 0; will-change: transform; }
+#home .scene .lay img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+#home .scene .lay img.garden { left: -4.63%; top: 30.6%; width: 50%; height: 41.67%; }
+#home .scene .steamgl { position: absolute; left: 60.88%; top: 59.38%; width: 39.35%; height: 19.53%; pointer-events: none; }
 /* 처음 화면 그림 위에 얹는 작은 움직임: 찻잔 김, 햇빛 속 먼지, 햇빛 숨쉬기. 그림과 같은 자리·크기로 맞춘다 (JS가 위치를 잡는다) */
 #home .fx { position: absolute; z-index: 1; pointer-events: none; }
 #home .fx .steam { position: absolute; left: 77.6%; top: 70.2%; width: 6.6%; height: 8.6%; overflow: visible; filter: blur(1.2px); }
@@ -533,8 +538,14 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 <!-- 시작 -->
 <main class="view on" id="home">
   <div class="stagebox">
-    <div class="fx" id="homeFx" aria-hidden="true"><div class="sunglow"></div><svg class="steam" viewBox="0 0 60 90"><path class="w1" d="M30 88 C 22 70, 38 58, 29 42 S 34 18, 28 4"/><path class="w2" d="M24 88 C 16 72, 30 60, 22 44 S 26 22, 20 8"/><path class="w3" d="M36 88 C 44 72, 30 60, 38 46 S 33 22, 40 8"/></svg><i class="mote" style="left:58.5%;top:44.2%;--s:2px;--dx:-5px;--dy:-25px;animation-duration:18.9s;animation-delay:-1.4s"></i><i class="mote" style="left:67.9%;top:41.0%;--s:2px;--dx:2px;--dy:-25px;animation-duration:16.9s;animation-delay:-1.4s"></i><i class="mote" style="left:70.8%;top:66.5%;--s:2px;--dx:3px;--dy:-19px;animation-duration:18.7s;animation-delay:-11.7s"></i><i class="mote" style="left:91.8%;top:41.3%;--s:2.5px;--dx:1px;--dy:-16px;animation-duration:20.7s;animation-delay:-5.8s"></i><i class="mote" style="left:70.6%;top:59.1%;--s:2.5px;--dx:-5px;--dy:-16px;animation-duration:13.9s;animation-delay:-11.4s"></i><i class="mote" style="left:45.2%;top:41.7%;--s:3.5px;--dx:10px;--dy:-18px;animation-duration:14.9s;animation-delay:-13.6s"></i><i class="mote" style="left:89.1%;top:50.1%;--s:2.5px;--dx:-15px;--dy:-21px;animation-duration:15.2s;animation-delay:-3.6s"></i><i class="mote" style="left:67.3%;top:49.6%;--s:2px;--dx:-14px;--dy:-18px;animation-duration:17.0s;animation-delay:-12.2s"></i><i class="mote" style="left:80.6%;top:44.3%;--s:2px;--dx:10px;--dy:-16px;animation-duration:17.4s;animation-delay:-0.8s"></i><i class="mote" style="left:86.6%;top:48.8%;--s:3.5px;--dx:-16px;--dy:-24px;animation-duration:19.3s;animation-delay:-11.9s"></i><i class="mote" style="left:55.8%;top:59.5%;--s:3px;--dx:5px;--dy:-8px;animation-duration:13.6s;animation-delay:-14.6s"></i></div>
-    <img class="scene" src="img/office.webp" alt="지점장실. 책상에 앉은 안나의 뒷모습 너머로 리나가 순회표를 들고 보고하고, 창밖에서는 막시밀리안이 풀을 뜯는다." width="900" height="1600">
+    <div class="fx" id="homeFx" aria-hidden="true"><div class="sunglow"></div><i class="mote" style="left:58.5%;top:44.2%;--s:2px;--dx:-5px;--dy:-25px;animation-duration:18.9s;animation-delay:-1.4s"></i><i class="mote" style="left:67.9%;top:41.0%;--s:2px;--dx:2px;--dy:-25px;animation-duration:16.9s;animation-delay:-1.4s"></i><i class="mote" style="left:70.8%;top:66.5%;--s:2px;--dx:3px;--dy:-19px;animation-duration:18.7s;animation-delay:-11.7s"></i><i class="mote" style="left:91.8%;top:41.3%;--s:2.5px;--dx:1px;--dy:-16px;animation-duration:20.7s;animation-delay:-5.8s"></i><i class="mote" style="left:70.6%;top:59.1%;--s:2.5px;--dx:-5px;--dy:-16px;animation-duration:13.9s;animation-delay:-11.4s"></i><i class="mote" style="left:45.2%;top:41.7%;--s:3.5px;--dx:10px;--dy:-18px;animation-duration:14.9s;animation-delay:-13.6s"></i><i class="mote" style="left:89.1%;top:50.1%;--s:2.5px;--dx:-15px;--dy:-21px;animation-duration:15.2s;animation-delay:-3.6s"></i><i class="mote" style="left:67.3%;top:49.6%;--s:2px;--dx:-14px;--dy:-18px;animation-duration:17.0s;animation-delay:-12.2s"></i><i class="mote" style="left:80.6%;top:44.3%;--s:2px;--dx:10px;--dy:-16px;animation-duration:17.4s;animation-delay:-0.8s"></i><i class="mote" style="left:86.6%;top:48.8%;--s:3.5px;--dx:-16px;--dy:-24px;animation-duration:19.3s;animation-delay:-11.9s"></i><i class="mote" style="left:55.8%;top:59.5%;--s:3px;--dx:5px;--dy:-8px;animation-duration:13.6s;animation-delay:-14.6s"></i></div>
+    <div class="scene" id="homeArt" role="img" aria-label="지점장실. 책상에 앉은 안나의 뒷모습 너머로 리나가 순회표를 들고 보고하고, 창밖에서는 막시밀리안이 풀을 뜯는다.">
+      <div class="lay" id="layGarden"><img src="img/o-garden.webp" alt="" class="garden" width="432" height="640"></div>
+      <div class="lay" id="layRoom"><img src="img/o-room.webp" alt="" width="864" height="1536"></div>
+      <div class="lay" id="layRina"><img src="img/o-rina.webp" alt="" width="864" height="1536"></div>
+      <canvas class="steamgl" id="steamGl" width="170" height="150"></canvas>
+      <div class="lay"><img src="img/o-fg.webp" alt="" width="864" height="1536"></div>
+    </div>
     <h1 class="logo"><img src="img/logo.webp" alt="은방울 관리일지" width="1000" height="333"></h1>
     <span class="ver num" id="homeVer" aria-hidden="true"></span>
   </div>
@@ -741,6 +752,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <h2 id="set-t">설정</h2>
     <p class="sethead">화면</p>
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
+    <label class="toggle" for="optMove">처음 화면 그림 움직임 <input type="checkbox" id="optMove"></label>
     <label class="toggle" for="optPat">댁 무늬 보기 <input type="checkbox" id="optPat"></label>
     <div class="toggle seg" role="radiogroup" aria-label="댁 경계선">댁 경계선 <span><button type="button" data-walls="thick">굵게</button><button type="button" data-walls="thin">가늘게</button><button type="button" data-walls="none">없음</button></span></div>
     <p class="sethead">소리</p>
@@ -948,7 +960,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 14:34';
+var BUILD = '11월 22일 14:41';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -994,7 +1006,7 @@ function startInf() {
 }
 function alertNote(t) { $('champ').hidden = false; $('champ').textContent = t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, buzz: true, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, buzz: true, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null, homeMove: null };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -1138,6 +1150,79 @@ function homeFxFit() {
   var box = document.querySelector('#home .stagebox'), fx = $('homeFx'); if (!box || !fx) return;
   var W = box.clientWidth, H = box.clientHeight, k = Math.max(W / 900, H / 1600), w = 900 * k, h = 1600 * k;
   fx.style.width = w + 'px'; fx.style.height = h + 'px'; fx.style.left = ((W - w) * 0.5) + 'px'; fx.style.top = ((H - h) * 0.8) + 'px';
+  var art = $('homeArt'); if (art) { art.style.width = w + 'px'; art.style.height = h + 'px'; art.style.left = ((W - w) * 0.5) + 'px'; art.style.top = ((H - h) * 0.8) + 'px'; }
+  artK = w / 864; artKick();
+}
+// ── 처음 화면 그림 움직임 ──
+// 카메라형: 책상·안나는 고정, 리나는 가로로 살짝, 방 벽은 반대로, 창밖 정원은 더 크게 반대로 움직여 깊이가 생긴다 (원화 픽셀 기준)
+// 방은 움직여도 가장자리가 드러나지 않게 2.5% 키워 둔다. 정원 그림은 원래 창보다 넉넉하게 그려져 있다
+var artK = 1, artTx = 0, artTy = 0, artCx = 0, artCy = 0, artRun = false, artBase = null, artGyro = false, artLast = 0;
+function artMoveOn() { return save.homeMove == null ? !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) : !!save.homeMove; }
+function artOnHome() { return $('home').classList.contains('on') && !document.hidden; }
+function artKick() { if (!artRun && artOnHome()) { artRun = true; requestAnimationFrame(artTick); } }
+function artPlace() {
+  var k = artK, x = artCx, y = artCy;
+  $('layGarden').style.transform = 'translate3d(' + (-x * 16 * k).toFixed(2) + 'px,' + (y * 5 * k).toFixed(2) + 'px,0)';
+  $('layRoom').style.transform = 'translate3d(' + (-x * 9 * k).toFixed(2) + 'px,' + (y * 3 * k).toFixed(2) + 'px,0) scale(1.025)';
+  $('layRina').style.transform = 'translate3d(' + (x * 2 * k).toFixed(2) + 'px,0,0)';
+}
+function artTick(t) {
+  if (!artOnHome()) { artRun = false; return; }
+  var move = artMoveOn();
+  if (move && !artGyro) { var s = t / 1000; artTx = Math.sin(s * 0.33) * 0.75; artTy = Math.sin(s * 0.25 + 1) * 0.5; }
+  if (!move) { artTx = 0; artTy = 0; }
+  artCx += (artTx - artCx) * 0.06; artCy += (artTy - artCy) * 0.06;
+  if (t - artLast > 32) { artLast = t; artPlace(); steamDraw(t / 1000); }
+  if (move || Math.abs(artCx) > 0.002 || Math.abs(artCy) > 0.002 || (steamOk && move)) requestAnimationFrame(artTick); else { artPlace(); artRun = false; }
+}
+// 기울기: 지금 쥔 각도를 기준으로 천천히 따라가며, 6도 기울이면 끝까지
+function artOrient(e) {
+  if (e.gamma == null || !artMoveOn()) return;
+  if (!artBase) artBase = { g: e.gamma, b: e.beta };
+  artBase.g += (e.gamma - artBase.g) * 0.004; artBase.b += (e.beta - artBase.b) * 0.004;
+  artGyro = true;
+  artTx = Math.max(-1, Math.min(1, (e.gamma - artBase.g) / 6)); artTy = Math.max(-1, Math.min(1, (e.beta - artBase.b) / 6));
+}
+var artAsked = false;
+function artAskGyro() {
+  if (artAsked) return; artAsked = true;
+  if (!window.DeviceOrientationEvent) return;
+  // 아이폰은 한 번 누를 때 허락을 받아야 한다. 안드로이드는 그냥 켜진다
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try { DeviceOrientationEvent.requestPermission().then(function (r) { if (r === 'granted') window.addEventListener('deviceorientation', artOrient); }).catch(function () {}); } catch (e) {}
+  } else window.addEventListener('deviceorientation', artOrient);
+}
+if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function') artAskGyro();
+$('home').addEventListener('pointerdown', function () { if (artMoveOn()) artAskGyro(); });
+document.addEventListener('visibilitychange', function () { if (!document.hidden) artKick(); });
+// 찻잔 김: 작은 WebGL 캔버스에 셰이더로 그린다 (안 되면 김 없이)
+var steamGl = null, steamOk = false, steamT = null;
+(function () {
+  var c = $('steamGl'); if (!c) return;
+  try {
+    var gl = c.getContext('webgl', { premultipliedAlpha: false, alpha: true }); if (!gl) return;
+    var vs = 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
+    var fs = 'precision mediump float; varying vec2 v; uniform float t;' +
+      'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }' +
+      'float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(h(i), h(i+vec2(1.0,0.0)), f.x), mix(h(i+vec2(0.0,1.0)), h(i+vec2(1.0,1.0)), f.x), f.y); }' +
+      'float wisp(float x, float y, float ph, float sp){ float sway = sin(y*6.0 - t*sp + ph) * 0.16 * (0.25 + y) + sin(y*13.0 - t*sp*1.7 + ph*2.0) * 0.04 * y + (n(vec2(y*3.0 - t*0.4, ph)) - 0.5) * 0.30 * y; float wdt = 0.03 + 0.07 * y; float d = (x - 0.5 - sway) / wdt; return exp(-d*d); }' +
+      'void main(){ float x = 0.5 + (v.x - 0.5) * 340.0 / 190.0, y = v.y * 300.0 / 190.0;' +
+      ' float edge = smoothstep(0.0, 0.15, v.x) * (1.0 - smoothstep(0.85, 1.0, v.x)) * (1.0 - smoothstep(0.8, 1.0, v.y));' +
+      ' float s = wisp(x + 0.05, y, 0.0, 1.3) * 0.9 + wisp(x - 0.06, y, 2.4, 1.05) * 0.7;' +
+      ' float br = 0.55 + 0.45 * n(vec2(x*6.0, y*5.0 - t*0.9));' +
+      ' float fade = smoothstep(0.0, 0.10, y) * (1.0 - smoothstep(0.35, 0.95, y));' +
+      ' gl_FragColor = vec4(1.0, 0.98, 0.95, clamp(s * br * fade * edge * 0.62, 0.0, 1.0)); }';
+    function sh(type, src) { var o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+    var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
+    var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    var a = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+    steamT = gl.getUniformLocation(pr, 't'); steamGl = gl; steamOk = true;
+  } catch (e) { steamOk = false; }
+})();
+function steamDraw(t) {
+  if (!steamOk) return;
+  var on = artMoveOn(); $('steamGl').style.visibility = on ? '' : 'hidden'; if (!on) return;
+  var gl = steamGl; gl.viewport(0, 0, 170, 150); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.uniform1f(steamT, t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 window.addEventListener('resize', homeFxFit);
 function renderHome() {
@@ -2600,7 +2685,7 @@ function resLeave(dest) {
 $('toChapters').addEventListener('click', function () { resLeave('chapters'); });
 $('resHome').addEventListener('click', function () { resLeave('home'); });
 $('openSettings').addEventListener('click', function () {
-  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
+  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optMove').checked = artMoveOn(); $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
@@ -2619,6 +2704,7 @@ document.querySelector('.seg').addEventListener('click', function (e) {
   var old = boardEl.querySelector('svg.walls'); if (P && old) { old.remove(); boardEl.insertAdjacentHTML('beforeend', wallsSvg(P.n, P.reg, P.big)); }
 });
 $('optBuzz').addEventListener('change', function () { save.buzz = this.checked; store(); if (save.buzz) buzz(20); });
+$('optMove').addEventListener('change', function () { save.homeMove = this.checked; store(); if (this.checked) artAskGyro(); artKick(); });
 $('optPat').addEventListener('change', function () { save.pat = this.checked; store(); document.body.classList.toggle('noPat', !this.checked); });
 $('optOpenRow').hidden = !TEST;
 $('optOpen').addEventListener('change', function () { save.openAll = this.checked; store(); renderHome(); });
