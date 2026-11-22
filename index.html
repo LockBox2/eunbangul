@@ -489,7 +489,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
 .sheet { background: linear-gradient(#fdf9ef, #f1e9d6); box-shadow: 0 6px 0 #b9ad92, 0 20px 40px rgba(0,0,0,.5); }
 .sheet button { background: linear-gradient(#2e3a72, #1b2250); box-shadow: 0 3px 0 #0b0f2a; }
 .sheet button.quiet { background: transparent; box-shadow: none; }
-.sheet #next, .sheet #toRoute, .sheet #rrnext, .sheet #overMore, .sheet #hayGive { background: linear-gradient(#ee7a55, var(--stone) 55%, #c24a2e); border-color: #f3a184; box-shadow: 0 4px 0 var(--stone-deep); color: #fff; }
+.sheet #next, .sheet #toRoute, .sheet #toEnd, .sheet #rrnext, .sheet #overMore, .sheet #hayGive { background: linear-gradient(#ee7a55, var(--stone) 55%, #c24a2e); border-color: #f3a184; box-shadow: 0 4px 0 var(--stone-deep); color: #fff; }
 .note { color: #aab3d4; }
 
 /* 시작 화면: 제목 띠, 지점장실 그림, 버튼 서랍을 위에서 아래로 쌓는다. 그림 위에는 아무것도 얹지 않는다. */
@@ -647,6 +647,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <p class="memo" id="rmemo"></p>
     <p class="ps" id="rps"></p>
     <button type="button" id="toRoute" hidden>순회 길 잡기</button>
+    <button type="button" id="toEnd" class="go" hidden>맺는 이야기 보기</button>
     <button type="button" id="next">다음 순회표</button>
     <div class="pair"><button type="button" class="quiet" id="toChapters">일지로</button><button type="button" class="quiet" id="resHome">처음 화면</button></div>
   </div>
@@ -962,7 +963,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 21:51';
+var BUILD = '11월 22일 22:57';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -2186,7 +2187,7 @@ function finishDaily() {
   $('rbody').textContent = dayLabel(daily.dn) + ' 오늘의 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단, 길을 잘못 든 횟수 ' + slips + '번.';
   $('rmemo').hidden = true; $('rps').hidden = false;
   $('rps').textContent = !lbOn ? '' : unr ? '막시밀리안의 도움을 받아서 오늘 기록은 순위에 오르지 않습니다. 은방울은 그대로 받았습니다.' : save.lbName ? '오늘 순위를 불러오는 중입니다…' : '오늘 순위에 오르려면 처음 화면의 「은방울 순위」에서 이름을 정해 주세요. 정하면 오늘 기록도 함께 올라갑니다.';
-  $('next').hidden = true; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로'; $('resHome').hidden = true;
+  $('next').hidden = true; $('toRoute').hidden = true; $('toEnd').hidden = true; $('toChapters').textContent = '처음 화면으로'; $('resHome').hidden = true;
   for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
   say('clear'); duck(true);
   setTimeout(function () { play('clear'); }, 150);
@@ -2206,7 +2207,7 @@ function finishInf() {
   $('rbody').textContent = '무한 순회 ' + daily.no + '번째, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단, 길을 잘못 든 횟수 ' + slips + '번.';
   $('rmemo').hidden = true; $('rps').hidden = false;
   $('rps').textContent = '지금까지 무한 순회 ' + save.inf.n + '판 · 은방울 ' + save.inf.b + '개';
-  $('next').hidden = false; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로'; $('resHome').hidden = true;
+  $('next').hidden = false; $('toRoute').hidden = true; $('toEnd').hidden = true; $('toChapters').textContent = '처음 화면으로'; $('resHome').hidden = true;
   for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
   say('clear'); duck(true);
   setTimeout(function () { play('clear'); }, 150);
@@ -2252,9 +2253,11 @@ function finish() {
   $('rps').hidden = !lastOfChapter;
   if (lastOfChapter) $('rps').textContent = POSTSCRIPTS[(Math.ceil((i + 1) / CHAPTER_SIZE) - 1) % POSTSCRIPTS.length][1] + ' (리나)';
   $('next').hidden = last || nextLocked;
+  // 마지막 판을 깨고 순회 길도 다 잡았으면, 맺는 이야기로 가는 큰 단추를 낸다 (일지로 가야만 나오던 것)
+  var showEnd = last && !askRoute && !routeDue(ch) && !save.cutSeen.end; $('toEnd').hidden = !showEnd;
   // 순회 길이 열렸는데 아직 안 잡았으면, 열린 그 판과 장의 끝에서 바로 들어가는 단추를 낸다
   $('toRoute').hidden = !askRoute; $('toRoute').dataset.c = ch;
-  villageGo(function () { $('reportVeil').classList.add('on'); (askRoute ? $('toRoute') : last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
+  villageGo(function () { $('reportVeil').classList.add('on'); (askRoute ? $('toRoute') : showEnd ? $('toEnd') : last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
     for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('ting'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 
@@ -2489,7 +2492,9 @@ function rWin() {
     var canNext = nextFirst < PUZZLES.length && stageOpen(nextFirst) && !isCleared(nextFirst);
     $('rrt').textContent = '[순회 길 보고]';
     $('rrbody').textContent = (R.c + 1) + '장 순회 길을 잡았습니다. 댁 ' + R.lastNum + '곳을 차례대로 들르고, 골목 ' + R.N + '곳을 빠짐없이 지났습니다. 막시밀리안 건초 ' + R.hints + '단.' + (first && canNext ? ' 다음 장 일지를 펼칠 수 있습니다.' : '');
-    $('rrsign').hidden = false; $('rrnote').hidden = false; $('rrnext').hidden = !canNext; $('rrnext').dataset.i = nextFirst; $('rrback').textContent = '일지로'; $('rrHome').hidden = false;
+    $('rrsign').hidden = false; $('rrnote').hidden = false; // 마지막 장의 길까지 잡았으면 큰 단추가 맺는 이야기로 간다
+    var endNow = isCleared(PUZZLES.length - 1) && R.c === chapterOf(PUZZLES.length - 1) && !save.cutSeen.end;
+    $('rrnext').hidden = !canNext && !endNow; $('rrnext').dataset.i = nextFirst; $('rrnext').dataset.end = endNow ? '1' : ''; $('rrnext').textContent = endNow ? '맺는 이야기 보기' : '다음 장으로'; $('rrback').textContent = '일지로'; $('rrHome').hidden = false;
   }
   var bh = ''; if (!R.practice) for (var b = 0; b < 3; b++) bh += '<i' + (b < got ? ' class="got" style="--bd:' + (1.15 + b * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
   $('rrbells').innerHTML = bh; $('rrbells').hidden = R.practice; $('rrbells').setAttribute('aria-label', '은방울 ' + got + '개');
@@ -2512,7 +2517,7 @@ function rLeave(dest) {
 }
 $('rrback').addEventListener('click', rLeave);
 $('rrHome').addEventListener('click', function () { rLeave('home'); });
-$('rrnext').addEventListener('click', function () { var i = Number(this.dataset.i); duck(false); $('routeVeil').classList.remove('on'); openStage(i); });
+$('rrnext').addEventListener('click', function () { if (this.dataset.end) { rLeave('home'); return; } var i = Number(this.dataset.i); duck(false); $('routeVeil').classList.remove('on'); openStage(i); });
 $('toRoute').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); routeStart(Number(this.dataset.c)); });
 function rTutoShow() {
   var R = route, band = $('rtuto');
@@ -2735,6 +2740,7 @@ function resLeave(dest) {
 }
 $('toChapters').addEventListener('click', function () { resLeave('chapters'); });
 $('resHome').addEventListener('click', function () { resLeave('home'); });
+$('toEnd').addEventListener('click', function () { resLeave('home'); });
 $('openSettings').addEventListener('click', function () {
   $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optMove').checked = artMoveOn(); $('optVillage').checked = villageOn(); $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
