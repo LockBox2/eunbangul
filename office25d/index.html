@@ -23,6 +23,7 @@
   <button type="button" id="mode">입력: 자동 흔들기</button>
   <button type="button" id="amp">세기 1×</button>
   <button type="button" id="layers" class="on">카메라형</button>
+  <button type="button" id="steam" class="on">찻잔 김</button>
   <button type="button" id="hide">단추 숨기기</button>
 </div>
 <script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
@@ -41,17 +42,52 @@ document.getElementById('view').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const cam = new THREE.OrthographicCamera(0, W, 0, -H, -100, 100); // 위가 0, 아래로 -H
 const loader = new THREE.TextureLoader();
-function plane(url, z) {
+// rect: 캔버스 좌표의 [x, y, w, h]. 없으면 캔버스 전체. 키우고 옮기는 건 캔버스 가운데 기준(그룹)
+function plane(url, z, rect) {
   const tex = loader.load(url, () => { loaded++; if (loaded === 4) { document.getElementById('info').textContent = info0; draw(); } });
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-  m.position.set(W / 2, -H / 2, z); scene.add(m); return m;
+  const [x, y, w, h] = rect || [0, 0, W, H];
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  m.position.set(x + w / 2 - W / 2, -(y + h / 2) + H / 2, 0);
+  const g = new THREE.Group(); g.add(m); g.position.set(W / 2, -H / 2, z); scene.add(g); return g;
 }
 let loaded = 0;
-const info0 = '네 층 시험(창밖 추가) · 단추 숨긴 뒤 화면을 두 번 누르면 다시 나와요';
+const info0 = 'v5 · 새 정원 + 움직이는 찻잔 김 · 단추 숨긴 뒤 화면을 두 번 누르면 다시 나와요';
 // 배경은 움직일 때 가장자리가 드러나지 않게 살짝 키워 둔다 (배경도 움직이기 켰을 때만)
 // 네 층: 창밖(가장 멀다) / 방(유리 칸만 뚫림) / 리나 / 책상·안나
-const ext = plane('ext.webp', -30), bg = plane('room.webp', -20), rina = plane('rina.webp', -8), fg = plane('fg.webp', 0);
+// 정원: 제임스 v5 여유분 그림(432×640, 캔버스 x -40, y 470). 움직여도 왼쪽이 비지 않는다
+const ext = plane('garden.webp', -30, [-40, 470, 432, 640]), bg = plane('room.webp', -20), rina = plane('rina.webp', -8), fg = plane('fg.webp', 0);
+// 찻잔 김: 원화에서 지운 김을 셰이더로 그린다. 찻잔 입구(가운데 x 696, y 1205) 위로 두 가닥이 피어올라 흔들리며 사라진다
+// 리나 앞, 책상(찻잔) 뒤에 둬서 김 밑동은 찻잔 테두리에 가려진다
+const SW = 190, SH = 190, CUP = [696, 1212];
+const steamMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { t: { value: 0 }, a: { value: 1 } },
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    varying vec2 v; uniform float t; uniform float a;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+      return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+    float wisp(float x, float y, float ph, float sp){
+      float sway = sin(y*6.0 - t*sp + ph) * 0.16 * (0.25 + y) + sin(y*13.0 - t*sp*1.7 + ph*2.0) * 0.04 * y + (n(vec2(y*3.0 - t*0.4, ph)) - 0.5) * 0.30 * y;
+      float wdt = 0.03 + 0.07 * y;
+      float d = (x - 0.5 - sway) / wdt;
+      return exp(-d*d);
+    }
+    void main(){
+      float x = v.x, y = v.y;
+      float s = wisp(x + 0.05, y, 0.0, 1.3) * 0.9 + wisp(x - 0.06, y, 2.4, 1.05) * 0.7;
+      float br = 0.55 + 0.45 * n(vec2(x*6.0, y*5.0 - t*0.9));
+      float fade = smoothstep(0.0, 0.10, y) * (1.0 - smoothstep(0.35, 0.95, y));
+      float alpha = clamp(s * br * fade * 0.62 * a, 0.0, 1.0);
+      gl_FragColor = vec4(vec3(1.0, 0.98, 0.95), alpha);
+    }`
+});
+const steam = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), steamMat);
+steam.position.set(CUP[0], -(CUP[1] - SH / 2), -4); scene.add(steam);
+let steamOn = true;
+document.getElementById('steam').addEventListener('click', (e) => { steamOn = !steamOn; steam.visible = steamOn; e.target.classList.toggle('on', steamOn); kick(); });
 // 화면 채우기: 게임 처음 화면처럼 cover, 아래쪽 80% 기준
 function fit() {
   const vw = window.innerWidth, vh = window.innerHeight; renderer.setSize(vw, vh);
@@ -103,10 +139,13 @@ function tick(t) {
   rina.position.x = W / 2 + cx * (cam2 ? LIMIT.rinaCam : LIMIT.rina[0]) * amp; rina.position.y = -H / 2 - cy * LIMIT.rina[1] * amp * rm;
   bg.position.x = W / 2 - cx * LIMIT.bg[0] * amp * bm; bg.position.y = -H / 2 + cy * LIMIT.bg[1] * amp * bm;
   ext.position.x = W / 2 - cx * LIMIT.ext[0] * amp * bm; ext.position.y = -H / 2 + cy * LIMIT.ext[1] * amp * bm;
+  steamMat.uniforms.t.value = t / 1000;
   draw();
-  if (mode === 'auto' || Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002) requestAnimationFrame(tick); else running = false;
+  if (mode === 'auto' || steamOn || Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002) requestAnimationFrame(tick); else running = false;
 }
-function draw() { renderer.render(scene, cam); }
+// 김이 켜져 있으면 계속 그리되 초당 30장 정도로
+let lastDraw = 0;
+function draw() { const now = performance.now(); if (now - lastDraw < 30 && running) return; lastDraw = now; renderer.render(scene, cam); }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && mode === 'auto') kick(); });
 fit(); kick();
 </script>
