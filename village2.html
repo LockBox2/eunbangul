@@ -41,7 +41,8 @@ var COLORS = ['#f9e79d', '#c0e5bb', '#a6ddfb', '#dfc9fa', '#ffc5bc', '#ffd1a7', 
 var TW = 225, TH = 130;
 var A = {
   grass: [227, 137], 'house-sa': [252, 213], 'house-sb': [233, 233], 'house-ma': [274, 308], 'house-mb': [322, 316], mansion: [402, 346],
-  'tree-a': [180, 247], 'tree-b': [233, 240], flowers: [257, 187], carriage: [221, 189], lamp: [97, 185], hedge: [141, 114], sign: [144, 197], arch: [172, 172]
+  'tree-a': [180, 247], 'tree-b': [233, 240], flowers: [257, 187], carriage: [221, 189], lamp: [97, 185], hedge: [141, 114], sign: [144, 197], arch: [172, 172],
+  mansion2: [1180, 1157], donkeycart: [1005, 809], cart: [831, 775]
 };
 var HOUSES = ['house-sa', 'house-sb', 'house-ma', 'house-mb'];
 var cur = 0, tintOn = true;
@@ -55,6 +56,15 @@ function build(k) {
   var carts = {}; for (var q = 0; q < B.carts.length; q += 3) carts[B.carts[q] + ',' + B.carts[q + 1]] = B.carts[q + 2];
   var seed = 11 + k * 17; function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
   var items = [], bigDone = false;
+  // 큰 저택(2×2): 큰 댁 관리원 칸 중, 뒤쪽 세 칸(위·왼쪽·왼쪽 위)이 같은 댁이고 비어 있는 칸을 앞 모서리로 삼는다
+  var mAt = null, cover = {};
+  // 큰 댁 관리원 칸을 포함하는 2×2 칸 묶음 중, 네 칸이 모두 큰 댁이고 나머지 세 칸이 비어 있는 것을 고른다. 그림은 앞(오른쪽 아래) 칸에 세운다
+  if (B.big) for (var rr = 0; rr < n && !mAt; rr++) { var cc = Number(B.sol[rr]); if (B.reg[rr * n + cc] !== B.big) continue;
+    [[0, 0], [-1, 0], [0, -1], [-1, -1]].forEach(function (o) { if (mAt) return; var r0 = rr + o[0], c0 = cc + o[1]; if (r0 < 0 || c0 < 0 || r0 + 1 >= n || c0 + 1 >= n) return;
+      var cells = [[r0, c0], [r0 + 1, c0], [r0, c0 + 1], [r0 + 1, c0 + 1]];
+      var ok = cells.every(function (p) { return B.reg[p[0] * n + p[1]] === B.big && !carts[p[0] + ',' + p[1]] && (Number(B.sol[p[0]]) !== p[1] || (p[0] === rr && p[1] === cc)); });
+      if (ok) { mAt = (r0 + 1) + ',' + (c0 + 1); cells.forEach(function (p) { if (p[0] !== r0 + 1 || p[1] !== c0 + 1) cover[p[0] + ',' + p[1]] = 1; }); } });
+  }
   var oy = -(n * th) / 2 + 110 * s;
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
     var cx = (c - r) * tw / 2, cy = oy + (c + r) * th / 2; // 마름모 위 꼭짓점
@@ -63,16 +73,20 @@ function build(k) {
     items.push({ z: z + 1, html: '<div class="tint" style="left:' + (cx - tw / 2).toFixed(1) + 'px;top:' + cy.toFixed(1) + 'px;width:' + tw.toFixed(1) + 'px;height:' + th.toFixed(1) + 'px;background:' + COLORS[g % 9] + '"></div>' });
     var name = null, bx = 0;
     // 큰 댁은 관리원이 둘이라 저택 하나 + 별채(중간 집) 하나
-    if (Number(B.sol[r]) === c) { if (B.big && B.reg[r * n + c] === B.big) { name = bigDone ? 'house-mb' : 'mansion'; bigDone = true; } else name = HOUSES[(g + r) % 4]; }
-    else if (carts[r + ',' + c]) name = 'carriage';
-    else { var x = rnd(); name = x < 0.16 ? 'tree-b' : x < 0.26 ? 'tree-a' : x < 0.34 ? 'flowers' : x < 0.37 ? 'lamp' : null; }
+    if (mAt === r + ',' + c) name = 'mansion2';
+    else if (cover[r + ',' + c]) name = null;
+    else if (Number(B.sol[r]) === c) { if (B.big && B.reg[r * n + c] === B.big) name = mAt ? 'house-mb' : bigDone ? 'house-mb' : 'mansion'; else name = HOUSES[(g + r) % 4]; if (name === 'mansion') bigDone = true; }
+    else if (carts[r + ',' + c]) name = 'donkeycart';
+    else if (cover[r + ',' + c]) name = null;
+    else if (!cover[r + ',' + c]) { var x = rnd(); name = x < 0.16 ? 'tree-b' : x < 0.26 ? 'tree-a' : x < 0.34 ? 'flowers' : x < 0.37 ? 'lamp' : null; }
     if (name) {
-      var a = A[name], k2 = name === 'mansion' ? 1 : name.indexOf('house') === 0 ? 0.92 : name === 'carriage' ? 0.7 : name.indexOf('tree') === 0 ? 0.62 : name === 'flowers' ? 0.62 : 0.6;
+      var a = A[name], k2 = name === 'mansion2' ? 0.40 : name === 'donkeycart' ? 0.27 : name === 'mansion' ? 1 : name.indexOf('house') === 0 ? 0.92 : name === 'carriage' ? 0.7 : name.indexOf('tree') === 0 ? 0.62 : name === 'flowers' ? 0.62 : 0.6;
       var iw = a[0] * s * k2, ih = a[1] * s * k2;
       // 그림 아래 가운데를 마름모 아래쪽 1/4 지점에 세운다
-      var by = cy + th * 0.78;
-      items.push({ z: z + 5, html: '<img class="pop" src="vil/' + name + '.webp" style="left:' + (cx - iw / 2).toFixed(1) + 'px;top:' + (by - ih).toFixed(1) + 'px;width:' + iw.toFixed(1) + 'px;animation-delay:' + d + 's">' });
-      if (name === 'carriage') items.push({ z: z + 6, html: '<b class="need pop" style="left:' + (cx + iw * 0.25).toFixed(1) + 'px;top:' + (by - ih - 8).toFixed(1) + 'px;animation-delay:' + d + 's">' + carts[r + ',' + c] + '</b>' });
+      // 2×2 저택은 앞 칸 아래 꼭짓점이 바닥 마름모 아래 꼭짓점(가로 가운데는 같은 cx)
+      var by = name === 'mansion2' ? cy + th : cy + th * 0.78, ax = cx;
+      items.push({ z: z + 5, html: '<img class="pop" src="vil/' + name + '.webp" style="left:' + (ax - iw / 2).toFixed(1) + 'px;top:' + (by - ih).toFixed(1) + 'px;width:' + iw.toFixed(1) + 'px;animation-delay:' + d + 's">' });
+      if (name === 'donkeycart') items.push({ z: z + 6, html: '<b class="need pop" style="left:' + (cx + iw * 0.25).toFixed(1) + 'px;top:' + (by - ih - 8).toFixed(1) + 'px;animation-delay:' + d + 's">' + carts[r + ',' + c] + '</b>' });
     }
   }
   items.sort(function (p, q) { return p.z - q.z; });
