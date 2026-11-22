@@ -9,10 +9,10 @@
   var PR = {"peddler_left": [61, 76], "grandmother_left": [57, 76], "grandmother_right": [58, 76], "basket_woman_left": [52, 76], "peddler_right": [56, 76], "woodcutter_right": [55, 76], "woodcutter_left": [54, 76], "basket_woman_right": [52, 76], "running_child_left": [42, 64], "running_child_right": [43, 64], "chicken_standing": [26, 31], "chicken_pecking": [29, 31], "cat_sitting": [33, 41], "donkey_wagon_compact": [157, 128], "wooden_bench": [102, 72], "well": [105, 106], "flowerpots": [72, 73], "vegetable_garden": [147, 88], "clothesline": [99, 80], "firewood_pile": [100, 66], "mailbox": [54, 81], "stepping_stones_right": [157, 96], "stepping_stones_left": [143, 92]};
   var KINDS = ['sa', 'sb', 'ma', 'mb', 'farm', 'bake', 'half', 'town', 'chap'];
   var css = '' +
-    '#vlay{position:fixed;inset:0;z-index:40;overflow:hidden;background:linear-gradient(#e9dcc2,#cdb896);opacity:0}' +
-    '#vlay::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 25% 15%,rgba(255,214,150,.35),rgba(255,214,150,0) 60%);mix-blend-mode:soft-light}' +
+    '#vlay{position:fixed;inset:0;z-index:40;overflow:hidden;background:radial-gradient(130% 70% at 50% -5%,#3d47a0 0%,#262d6b 38%,#161b44 70%,#0d1030 100%);opacity:0}' +
+    '#vlay .glow{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(255,222,165,.30),rgba(255,210,150,.10) 60%,rgba(255,210,150,0));pointer-events:none}' +
     '#vlay .vw{position:absolute;left:50%;top:46%}' +
-    '#vlay .vi{position:absolute;left:0;top:0;filter:saturate(1.2) contrast(1.1)}' +
+    '#vlay .vi{position:absolute;left:0;top:0;filter:saturate(1.15) contrast(1.08) brightness(.95)}' +
     '#vlay .vi>*{position:absolute;display:block;pointer-events:none}' +
     '#vlay .gr{filter:hue-rotate(24deg) saturate(1.15) brightness(.86)}#vlay .rd{filter:saturate(1.2) brightness(.93)}#vlay .tr{filter:hue-rotate(12deg) brightness(.92)}' +
     '#vlay .tint{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);mix-blend-mode:multiply;opacity:.85}' +
@@ -91,7 +91,7 @@
         seq.rise.push({ el: house, d: depth });
       } else if (carts[key]) {
         var cart = prop(z + 5, 'donkey_wagon_compact', p.x, p.y + th * 0.82, 'rise'); cart.style.opacity = 0; seq.rise.push({ el: cart, d: depth });
-        var bd = add(z + 7, 'b', 'need', 'left:' + px(p.x + tw * 0.22) + ';top:' + px(p.y + th * 0.8 - cart._h - 12) + ';opacity:0'); bd.textContent = carts[key]; seq.rise.push({ el: bd, d: depth, pop: true });
+        var bd = add(z + 7, 'b', 'need', 'left:' + px(p.x + tw * 0.22) + ';top:' + px(p.y + th * 0.8 - cart._h - 12) + ';opacity:0'); bd.textContent = carts[key]; seq.rise.push({ el: bd, d: depth, pop: true }); (seq.badge = seq.badge || []).push(bd);
       } else if (!cover[key]) {
         var mid = Math.abs(r - n / 2 + 0.5) + Math.abs(c - n / 2 + 0.5), y = rnd(), dn = null, pn = null;
         if (!wellDone && mid <= 2) { pn = 'well'; wellDone = true; }
@@ -143,7 +143,9 @@
       fh2 += '<i style="background:' + o.colors[gg] + (sh2.length ? ';box-shadow:' + sh2.join(',') : '') + '">' + inner + '</i>';
     }
     flat.innerHTML = fh2;
-    world.appendChild(iso); world.appendChild(flat); root.appendChild(world);
+    var glow = document.createElement('div'); glow.className = 'glow'; var gw = (n + 6) * tw, gh = (n + 6) * th * 1.5;
+    glow.style.cssText = 'left:' + px(-gw / 2) + ';top:' + px(cy - gh / 2) + ';width:' + px(gw) + ';height:' + px(gh);
+    world.appendChild(glow); world.appendChild(iso); world.appendChild(flat); root.appendChild(world);
     var msg = document.createElement('div'); msg.className = 'vmsg'; msg.textContent = '모든 댁에 불이 켜졌습니다'; root.appendChild(msg);
     document.body.appendChild(root);
     // 판 자리 맞추기: 월드 원점(화면 가로 가운데, 세로 46%) 기준으로 실제 판 가운데·크기
@@ -173,6 +175,7 @@
   function end() {
     if (ended) return; ended = true; playing = false;
     lifeOn(); if (sound) sound('bell'); root._msg.classList.add('on');
+    (root._seq.badge || []).forEach(function (b) { an(b, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-8px) scale(.6)' }], { duration: 400 }); });
     // 카메라가 물러나 마을 전체를 보여 주고, 보고서는 아래에서 올라온다
     an(root._world, [{ transform: root._cam.near }, { transform: root._cam.far }], { duration: 1500, easing: 'cubic-bezier(.45,0,.25,1)' });
     later(1500, function () { var f = onEnd; onEnd = null; if (f) f(); });
@@ -201,7 +204,7 @@
     seq.staff.forEach(function (t) { an(t.el, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }], { duration: 200, delay: 1000 }); });
     // 2) 판 색이 걷히고 울타리
     var T = 1200;
-    seq.tint.forEach(function (t) { an(t, [{ opacity: .85 }, { opacity: 0 }], { duration: 550, delay: T }); });
+    seq.tint.forEach(function (t) { an(t, [{ opacity: .85 }, { opacity: .55, offset: .35 }, { opacity: 0 }], { duration: 1300, delay: T - 100, easing: 'ease-in-out' }); });
     seq.fence.forEach(function (f) { var fl = f.flip ? 'scaleX(-1) ' : ''; an(f.el, [{ opacity: 0, transform: fl + 'scaleY(0)' }, { opacity: 1, transform: fl + 'scaleY(1.12)', offset: .65 }, { opacity: 1, transform: fl + 'scaleY(1)' }], { duration: 320, delay: T + 100 + f.d * 26 }); });
     // 3) 집·수레·마당이 땅에서 솟는다
     var T2 = T + 300, maxD = 0;
