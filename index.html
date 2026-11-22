@@ -424,6 +424,9 @@ body.routeOn #mail, body.routeOn #tuto, body.routeOn #houses, body.routeOn .boar
 .sheet .ps { font-size: .94em; border-top: 1px dashed #b9b09c; padding-top: 10px; }
 .sheet button { background: var(--curtain); color: var(--silver); border-color: var(--curtain); }
 .sheet button.quiet { background: transparent; color: var(--ink); border-color: #b9b09c; }
+.sheet .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sheet .pair:has(> [hidden]) { grid-template-columns: 1fr; }
+.sheet .pair button { width: 100%; margin: 0; }
 .sheet ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
 .toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; }
 /* 스위치는 브라우저 기본 체크 상자 대신 직접 그린다 (어두운 화면 설정에서 체크 표시가 묻혀 안 보였다) */
@@ -618,7 +621,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <p class="bells" id="rrbells" role="img"></p>
     <p class="rtime" id="rrnote">발굽 대신 리나가 적었습니다.</p>
     <button type="button" id="rrnext" hidden>다음 장으로</button>
-    <button type="button" class="quiet" id="rrback">일지로 돌아가기</button>
+    <div class="pair"><button type="button" class="quiet" id="rrback">일지로</button><button type="button" class="quiet" id="rrHome">처음 화면</button></div>
   </div>
 </div>
 
@@ -633,7 +636,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <p class="ps" id="rps"></p>
     <button type="button" id="toRoute" hidden>순회 길 잡기</button>
     <button type="button" id="next">다음 순회표</button>
-    <button type="button" class="quiet" id="toChapters">일지로 돌아가기</button>
+    <div class="pair"><button type="button" class="quiet" id="toChapters">일지로</button><button type="button" class="quiet" id="resHome">처음 화면</button></div>
   </div>
 </div>
 
@@ -645,7 +648,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <button type="button" id="overMore">한 번 더 기회 받기</button>
     <p class="note" id="overNote">광고 자리입니다. 출시판에서는 여기서 광고를 보고, 은방울 회원은 광고 없이 넘어갑니다. 지금은 누르면 바로 이어집니다.</p>
     <button type="button" class="quiet" id="overRetry">처음부터 다시 짜기</button>
-    <button type="button" class="quiet" id="overChapters">일지로 돌아가기</button>
+    <div class="pair"><button type="button" class="quiet" id="overChapters">일지로</button><button type="button" class="quiet" id="overHome">처음 화면</button></div>
   </div>
 </div>
 
@@ -945,7 +948,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 09:31';
+var BUILD = '11월 22일 13:58';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1122,7 +1125,7 @@ function go(view) {
   $('toTop').hidden = true;
   if (view !== 'play') document.documentElement.classList.remove('noscroll');
   if (paused) { paused = false; $('play').classList.remove('paused'); $('pauseVeil').classList.remove('on'); }
-  if (view !== 'play') { wipNow(); rWipNow(); routeExit(); if (daily) { daily = null; $('toChapters').textContent = '일지로 돌아가기'; } }
+  if (view !== 'play') { wipNow(); rWipNow(); routeExit(); if (daily) { daily = null; $('toChapters').textContent = '일지로'; $('resHome').hidden = false; } }
   ['home', 'chapters', 'play', 'cut'].forEach(function (v) { $(v).classList.toggle('on', v === view); });
   document.body.classList.toggle('onPlay', view === 'play');
   clearTimeout(idleTimer);
@@ -2047,7 +2050,7 @@ function finishDaily() {
   $('rbody').textContent = dayLabel(daily.dn) + ' 오늘의 순회표, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단, 길을 잘못 든 횟수 ' + slips + '번.';
   $('rmemo').hidden = true; $('rps').hidden = false;
   $('rps').textContent = !lbOn ? '' : unr ? '막시밀리안의 도움을 받아서 오늘 기록은 순위에 오르지 않습니다. 은방울은 그대로 받았습니다.' : save.lbName ? '오늘 순위를 불러오는 중입니다…' : '오늘 순위에 오르려면 처음 화면의 「은방울 순위」에서 이름을 정해 주세요. 정하면 오늘 기록도 함께 올라갑니다.';
-  $('next').hidden = true; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로';
+  $('next').hidden = true; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로'; $('resHome').hidden = true;
   for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
   say('clear'); duck(true);
   setTimeout(function () { play('clear'); }, 150);
@@ -2067,7 +2070,7 @@ function finishInf() {
   $('rbody').textContent = '무한 순회 ' + daily.no + '번째, ' + P.m + '댁을 마쳤습니다. 손 간 횟수 ' + moves + '번, 막시밀리안 건초 ' + hints + '단, 길을 잘못 든 횟수 ' + slips + '번.';
   $('rmemo').hidden = true; $('rps').hidden = false;
   $('rps').textContent = '지금까지 무한 순회 ' + save.inf.n + '판 · 은방울 ' + save.inf.b + '개';
-  $('next').hidden = false; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로';
+  $('next').hidden = false; $('toRoute').hidden = true; $('toChapters').textContent = '처음 화면으로'; $('resHome').hidden = true;
   for (var r = 0; r < P.n; r++) { var w = cellEl(r, P.sol[r]); w.style.setProperty('--d', (r * 0.07) + 's'); w.classList.add('win'); }
   say('clear'); duck(true);
   setTimeout(function () { play('clear'); }, 150);
@@ -2337,7 +2340,7 @@ function rWin() {
     rsay('잘했어요! 진짜 순회 길은 이 장을 다 돌고 나서 잡는대요.');
     $('rrt').textContent = '[순회 길 연습]';
     $('rrbody').textContent = '길 잡는 법을 익혔습니다. 댁은 차례대로, 골목은 빠짐없이, 왔던 길은 다시 밟지 않습니다. 진짜 순회 길은 장마다 스무 판을 다 돈 뒤에 잡습니다.';
-    $('rrsign').hidden = true; $('rrnote').hidden = true; $('rrnext').hidden = true; $('rrback').textContent = '이어서 하기';
+    $('rrsign').hidden = true; $('rrnote').hidden = true; $('rrnext').hidden = true; $('rrback').textContent = '이어서 하기'; $('rrHome').hidden = true;
   } else {
     // 은방울: 막시밀리안을 안 부르면 셋, 두 번까지 둘, 그보다 많으면 하나
     got = R.hints === 0 ? 3 : R.hints <= 2 ? 2 : 1;
@@ -2350,7 +2353,7 @@ function rWin() {
     var canNext = nextFirst < PUZZLES.length && stageOpen(nextFirst) && !isCleared(nextFirst);
     $('rrt').textContent = '[순회 길 보고]';
     $('rrbody').textContent = (R.c + 1) + '장 순회 길을 잡았습니다. 댁 ' + R.lastNum + '곳을 차례대로 들르고, 골목 ' + R.N + '곳을 빠짐없이 지났습니다. 막시밀리안 건초 ' + R.hints + '단.' + (first && canNext ? ' 다음 장 일지를 펼칠 수 있습니다.' : '');
-    $('rrsign').hidden = false; $('rrnote').hidden = false; $('rrnext').hidden = !canNext; $('rrnext').dataset.i = nextFirst; $('rrback').textContent = '일지로 돌아가기';
+    $('rrsign').hidden = false; $('rrnote').hidden = false; $('rrnext').hidden = !canNext; $('rrnext').dataset.i = nextFirst; $('rrback').textContent = '일지로'; $('rrHome').hidden = false;
   }
   var bh = ''; if (!R.practice) for (var b = 0; b < 3; b++) bh += '<i' + (b < got ? ' class="got" style="--bd:' + (1.15 + b * 0.28) + 's"' : '') + '>' + BELL_SVG + '</i>';
   $('rrbells').innerHTML = bh; $('rrbells').hidden = R.practice; $('rrbells').setAttribute('aria-label', '은방울 ' + got + '개');
@@ -2364,13 +2367,15 @@ function rWin() {
   }, R.N * 30 + 900);
 }
 // 연습을 마치거나 건너뛰면 하던 일로, 본판을 마치면 일지로. 마지막 장이면 맺는 이야기를 먼저 보여 준다
-function rLeave() {
+function rLeave(dest) {
+  if (typeof dest !== 'string') dest = 'chapters';
   var R = route; duck(false); $('routeVeil').classList.remove('on');
   if (R && R.practice) { save.tutoSeen.route = 1; store(); var then = R.then; routeExit(); if (then) then(); else go('chapters'); return; }
-  if (isCleared(PUZZLES.length - 1) && !routeDue(chapterOf(PUZZLES.length - 1)) && !save.cutSeen.end) playCut('end', function () { go('chapters'); });
-  else go('chapters');
+  if (isCleared(PUZZLES.length - 1) && !routeDue(chapterOf(PUZZLES.length - 1)) && !save.cutSeen.end) playCut('end', function () { go(dest); });
+  else go(dest);
 }
 $('rrback').addEventListener('click', rLeave);
+$('rrHome').addEventListener('click', function () { rLeave('home'); });
 $('rrnext').addEventListener('click', function () { var i = Number(this.dataset.i); duck(false); $('routeVeil').classList.remove('on'); openStage(i); });
 $('toRoute').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); routeStart(Number(this.dataset.c)); });
 function rTutoShow() {
@@ -2529,6 +2534,7 @@ $('hayGive').addEventListener('click', function () { $('hayVeil').classList.remo
 $('overMore').addEventListener('click', function () { $('overVeil').classList.remove('on'); extraUsed = true; mistakes = MAX_MAIL - 1; done = false; renderMail(); armIdle(); });
 $('overRetry').addEventListener('click', function () { $('overVeil').classList.remove('on'); startStage(save.stage); });
 $('overChapters').addEventListener('click', function () { $('overVeil').classList.remove('on'); go('chapters'); });
+$('overHome').addEventListener('click', function () { $('overVeil').classList.remove('on'); go('home'); });
 
 // 버튼
 $('resume').addEventListener('click', function () { var rp = routePending(), n = nextOpen(); if (rp >= 0) routeStart(rp); else if (n >= 0) openStage(n); else if (infOpen()) startInf(); else go('chapters'); });
@@ -2581,16 +2587,18 @@ $('pRules').addEventListener('click', function () {
 $('pSet').addEventListener('click', function () { $('openSettings').click(); });
 $('pChapters').addEventListener('click', function () { pauseOff(); if (route) { routeExit(); return; } go('chapters'); });
 $('pHome').addEventListener('click', function () { pauseOff(); if (route) { routeExit(); } go('home'); });
-$('next').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); if (daily && daily.inf) { $('toChapters').textContent = '일지로 돌아가기'; startInf(); return; } openStage(Math.min(save.stage + 1, PUZZLES.length - 1)); });
+$('next').addEventListener('click', function () { duck(false); $('reportVeil').classList.remove('on'); if (daily && daily.inf) { $('toChapters').textContent = '일지로'; $('resHome').hidden = false; startInf(); return; } openStage(Math.min(save.stage + 1, PUZZLES.length - 1)); });
 $('cut').addEventListener('click', function (e) { if (e.target.closest('#cutSkip')) { cutEnd(); return; } cutStepOn(false); });
 document.addEventListener('keydown', function (e) { if (cutState && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); cutStepOn(false); } });
-$('toChapters').addEventListener('click', function () {
+function resLeave(dest) {
   duck(false); $('reportVeil').classList.remove('on');
-  if (daily) { daily = null; $('toChapters').textContent = '일지로 돌아가기'; go('home'); return; }
+  if (daily) { daily = null; $('toChapters').textContent = '일지로'; $('resHome').hidden = false; go('home'); return; }
   // 마지막 판까지 풀었으면 맺는 이야기를 한 번 보여 준다
-  if (isCleared(PUZZLES.length - 1) && !routeDue(chapterOf(PUZZLES.length - 1)) && !save.cutSeen.end) playCut('end', function () { go('chapters'); });
-  else go('chapters');
-});
+  if (isCleared(PUZZLES.length - 1) && !routeDue(chapterOf(PUZZLES.length - 1)) && !save.cutSeen.end) playCut('end', function () { go(dest); });
+  else go(dest);
+}
+$('toChapters').addEventListener('click', function () { resLeave('chapters'); });
+$('resHome').addEventListener('click', function () { resLeave('home'); });
 $('openSettings').addEventListener('click', function () {
   $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
