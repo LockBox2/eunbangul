@@ -753,6 +753,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
     <p class="sethead">화면</p>
     <label class="toggle" for="optBig">큰 글씨 <input type="checkbox" id="optBig"></label>
     <label class="toggle" for="optMove">처음 화면 그림 움직임 <input type="checkbox" id="optMove"></label>
+    <label class="toggle" for="optVillage">판 끝 마을 보기 <input type="checkbox" id="optVillage"></label>
     <label class="toggle" for="optPat">댁 무늬 보기 <input type="checkbox" id="optPat"></label>
     <div class="toggle seg" role="radiogroup" aria-label="댁 경계선">댁 경계선 <span><button type="button" data-walls="thick">굵게</button><button type="button" data-walls="thin">가늘게</button><button type="button" data-walls="none">없음</button></span></div>
     <p class="sethead">소리</p>
@@ -960,7 +961,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 16:30';
+var BUILD = '11월 22일 16:40';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1006,7 +1007,7 @@ function startInf() {
 }
 function alertNote(t) { $('champ').hidden = false; $('champ').textContent = t; }
 var BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.500c-.9 0-1.600.7-1.600 1.500-2.700.8-4.400 3.300-4.400 6.300v3.900L4 17.200V18.500h16v-1.300l-2-3V10.300c0-3-1.700-5.500-4.400-6.300 0-.8-.7-1.500-1.600-1.500z"/><circle cx="12" cy="20.300" r="1.700"/></svg>';
-var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, buzz: true, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null, homeMove: null, villageTry: false };
+var save = { stage: 0, cleared: [], react: true, sound: true, big: false, openAll: false, easy: false, hintDay: '', hintUsed: 0, memoSeen: {}, ruleSeen: {}, cutSeen: {}, tutoSeen: {}, set: 0, music: true, bells: {}, best: {}, routes: {}, lbId: '', lbName: '', lbSent: '', why: true, wip: null, wipR: null, buzz: true, pat: true, thinWalls: false, walls: 'thick', daily: {}, dailySent: {}, wipD: null, dailyRule: {}, inf: { n: 0, b: 0 }, wipI: null, homeMove: null, village: null };
 
 ['img/desk.webp', 'img/btn-navy.webp', 'img/btn-wood.webp', 'img/stamp.webp', 'img/cart.webp', 'img/staff-1.webp', 'img/staff-2.webp', 'img/staff-3.webp', 'img/staff-4.webp', 'img/staff-5.webp', 'img/staff-6.webp', 'img/staff-7.webp', 'img/staff-8.webp', 'img/staff-9.webp', 'img/donkey-base.webp', 'img/donkey-stubborn.webp'].forEach(function (u) { var i = new Image(); i.src = u; });
 ['flustered', 'joy', 'awkward'].forEach(function (n) { var i = new Image(); i.src = 'img/rina-' + n + '.webp'; });
@@ -1120,8 +1121,9 @@ function sfxInit() {
 }
 // 손끝 진동: 안드로이드만 된다 (아이폰 브라우저는 진동을 지원하지 않는다)
 function buzz(pattern) { if (save.buzz && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
-// ── 판 끝 마을 (시험: 주소에 ?village 를 붙이면 켜지고, ?novillage 로 끈다) ──
-function villageOn() { return !!save.villageTry; }
+// ── 판 끝 마을: 판을 다 짜면 그 판이 기울어 마을이 되고 관리원이 각 댁에 들어간다 (설정에서 끌 수 있다) ──
+// 기본은 켬. 폰에서 움직임 줄이기를 켜 둔 사람은 처음부터 끔. 설정에서 바꾼 값이 있으면 그것을 따른다
+function villageOn() { return save.village == null ? !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) : !!save.village; }
 var villageLoad = null;
 function villageGo(show, ms) {
   if (!villageOn()) { setTimeout(show, ms); return; }
@@ -2717,7 +2719,7 @@ function resLeave(dest) {
 $('toChapters').addEventListener('click', function () { resLeave('chapters'); });
 $('resHome').addEventListener('click', function () { resLeave('home'); });
 $('openSettings').addEventListener('click', function () {
-  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optMove').checked = artMoveOn(); $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
+  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optMove').checked = artMoveOn(); $('optVillage').checked = villageOn(); $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
@@ -2736,6 +2738,7 @@ document.querySelector('.seg').addEventListener('click', function (e) {
   var old = boardEl.querySelector('svg.walls'); if (P && old) { old.remove(); boardEl.insertAdjacentHTML('beforeend', wallsSvg(P.n, P.reg, P.big)); }
 });
 $('optBuzz').addEventListener('change', function () { save.buzz = this.checked; store(); if (save.buzz) buzz(20); });
+$('optVillage').addEventListener('change', function () { save.village = this.checked; store(); });
 $('optMove').addEventListener('change', function () { save.homeMove = this.checked; store(); if (this.checked) artAskGyro(); artKick(); });
 $('optPat').addEventListener('change', function () { save.pat = this.checked; store(); document.body.classList.toggle('noPat', !this.checked); });
 $('optOpenRow').hidden = !TEST;
@@ -2898,7 +2901,7 @@ $('wipeNo').addEventListener('click', function () { $('wipeAsk').hidden = true; 
 $('wipeYes').addEventListener('click', function () { save.stage = 0; save.cleared = []; save.memoSeen = {}; save.ruleSeen = {}; save.cutSeen = {}; save.tutoSeen = {}; save.bells = {}; save.best = {}; save.routes = {}; save.wip = null; save.wipR = null; save.daily = {}; save.dailySent = {}; save.wipD = null; save.inf = { n: 0, b: 0 }; save.wipI = null; store(); $('wipeAsk').hidden = true; $('settingsVeil').classList.remove('on'); renderHome(); });
 
 load();
-if (VILLAGE_FLAG !== null) { save.villageTry = VILLAGE_FLAG; store(); }
+if (VILLAGE_FLAG !== null) { save.village = VILLAGE_FLAG; store(); }
 document.body.classList.toggle('noPat', save.pat === false);
 // 웹앱으로 올렸을 때: 한 번 받은 뒤에는 인터넷 없이도 열린다
 if ('serviceWorker' in navigator && location.protocol === 'https:' || location.hostname === 'localhost') { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
