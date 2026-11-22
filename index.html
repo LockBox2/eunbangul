@@ -613,12 +613,12 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="board-wrap"><div class="board" id="board"></div></div>
   <div class="houses" id="houses"></div>
   <div class="actions">
-    <button type="button" id="undo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 4 11l5 5"/><path d="M4 11h10a6 6 0 0 1 0 12h-3" transform="translate(0 -3)"/></svg>되돌리기</button>
+    <button type="button" id="undo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 4 8l5 5"/><path d="M4 8h10a6 6 0 0 1 0 12h-3"/></svg>되돌리기</button>
     <button type="button" id="reset"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9.5 12h6M9.5 16h4"/></svg><span id="resetLabel">다시 짜기</span></button>
     <button type="button" id="hint" aria-label="막시밀리안에게 묻기"><img src="img/donkey-base.webp" alt="" width="260" height="260">막시밀리안</button>
   </div>
   <div class="actions" id="ractions">
-    <button type="button" id="rundo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 4 11l5 5"/><path d="M4 11h10a6 6 0 0 1 0 12h-3" transform="translate(0 -3)"/></svg>한 칸 뒤로</button>
+    <button type="button" id="rundo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 4 8l5 5"/><path d="M4 8h10a6 6 0 0 1 0 12h-3"/></svg>한 칸 뒤로</button>
     <button type="button" id="rreset"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9.5 12h6M9.5 16h4"/></svg>다시 긋기</button>
     <button type="button" id="rhint" class="wood" aria-label="막시밀리안에게 묻기"><img src="img/donkey-base.webp" alt="" width="260" height="260">막시밀리안</button>
   </div>
@@ -961,7 +961,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 16:40';
+var BUILD = '11월 22일 16:51';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1065,7 +1065,7 @@ function routePending() {
 
 // 소리: 손종 녹음을 네 토막으로 잘라 쓴다
 var SOUNDS = {};
-['place', 'clash', 'hint', 'clear', 'bell', 'stamp'].forEach(function (n) { try { var a = new Audio('snd/' + n + '.mp3'); a.preload = 'auto'; SOUNDS[n] = a; } catch (e) {} });
+['place', 'clash', 'hint', 'clear', 'bell', 'stamp', 'ting'].forEach(function (n) { try { var a = new Audio('snd/' + n + '.mp3'); a.preload = 'auto'; SOUNDS[n] = a; } catch (e) {} });
 // 배경 음악: 처음 화면을 누른 뒤에 시작하고(브라우저 규칙), 화면을 벗어나면 멈춘다
 var bgm = null, BGM_VOL = 1, BGM_LOW = 0.3, duckT = null;
 // 보고서가 떠 있는 동안 배경 음악을 낮춘다. 소리 크기는 파일에 미리 줄여 두었다(아이폰은 음량 조절이 안 먹는다).
@@ -2176,7 +2176,7 @@ function finishDaily() {
   setTimeout(lbPush, 1500);
   dailyPush().then(function (d) { if (unr) return; if (d && d.me) $('rps').textContent = '오늘 ' + d.me.rank + '위 · 지금까지 ' + d.total + '명이 풀었습니다.' + (d.me.rank === 1 ? ' 내일 처음 화면에 이름이 걸립니다.' : ''); else if (save.lbName && lbOn) $('rps').textContent = '지금은 순위에 닿지 않습니다. 다음에 처음 화면을 열 때 다시 올립니다.'; });
   villageGo(function () { $('reportVeil').classList.add('on'); $('toChapters').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
-    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
+    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('ting'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 function finishInf() {
   petals(); done = true; clearTimeout(idleTimer); wipDrop();
@@ -2195,7 +2195,7 @@ function finishInf() {
   setTimeout(function () { play('clear'); }, 150);
   setTimeout(lbPush, 1500);
   villageGo(function () { $('reportVeil').classList.add('on'); $('next').focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
-    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
+    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('ting'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 function finish() {
   if (daily) { finishDaily(); return; }
@@ -2238,7 +2238,7 @@ function finish() {
   // 순회 길이 열렸는데 아직 안 잡았으면, 열린 그 판과 장의 끝에서 바로 들어가는 단추를 낸다
   $('toRoute').hidden = !askRoute; $('toRoute').dataset.c = ch;
   villageGo(function () { $('reportVeil').classList.add('on'); (askRoute ? $('toRoute') : last || nextLocked ? $('toChapters') : $('next')).focus(); setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('stamp'); }, 760);
-    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('place'); }, 1150 + q * 280); }, P.n * 70 + 700);
+    for (var q = 0; q < got; q++) setTimeout(function () { if ($('reportVeil').classList.contains('on')) play('ting'); }, 1150 + q * 280); }, P.n * 70 + 700);
 }
 
 // ───── 순회 길 잡기 ─────
@@ -2482,7 +2482,7 @@ function rWin() {
     if (route !== R) return;
     $('routeVeil').classList.add('on'); ($('rrnext').hidden ? $('rrback') : $('rrnext')).focus();
     if (!R.practice) setTimeout(function () { if ($('routeVeil').classList.contains('on')) play('stamp'); }, 760);
-    for (var q = 0; q < got; q++) setTimeout(function () { if ($('routeVeil').classList.contains('on')) play('place'); }, 1150 + q * 280);
+    for (var q = 0; q < got; q++) setTimeout(function () { if ($('routeVeil').classList.contains('on')) play('ting'); }, 1150 + q * 280);
   }, R.N * 30 + 900);
 }
 // 연습을 마치거나 건너뛰면 하던 일로, 본판을 마치면 일지로. 마지막 장이면 맺는 이야기를 먼저 보여 준다
