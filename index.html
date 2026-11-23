@@ -963,7 +963,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 22일 22:57';
+var BUILD = '11월 23일 10:57';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1206,7 +1206,7 @@ function homeFxFit() {
 var artK = 1, artTx = 0, artTy = 0, artCx = 0, artCy = 0, artRun = false, artBase = null, artGyro = false, artLast = 0;
 function artMoveOn() { return save.homeMove == null ? !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) : !!save.homeMove; }
 function artOnHome() { return $('home').classList.contains('on') && !document.hidden; }
-function artKick() { if (!artRun && artOnHome()) { artRun = true; requestAnimationFrame(artTick); } }
+function artKick() { if (!artRun && artOnHome()) { if (!steamGl) steamInit(); artRun = true; requestAnimationFrame(artTick); } }
 function artPlace() {
   var k = artK, x = artCx, y = artCy;
   $('layGarden').style.transform = 'translate3d(' + (-x * 16 * k).toFixed(2) + 'px,' + (y * 5 * k).toFixed(2) + 'px,0)';
@@ -1214,7 +1214,7 @@ function artPlace() {
   $('layRina').style.transform = 'translate3d(' + (x * 2 * k).toFixed(2) + 'px,0,0)';
 }
 function artTick(t) {
-  if (!artOnHome()) { artRun = false; return; }
+  if (!artOnHome()) { artRun = false; steamFree(); return; }
   var move = artMoveOn();
   if (move && !artGyro) { var s = t / 1000; artTx = Math.sin(s * 0.33) * 0.75; artTy = Math.sin(s * 0.25 + 1) * 0.5; }
   if (!move) { artTx = 0; artTy = 0; }
@@ -1244,14 +1244,24 @@ if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermis
 $('home').addEventListener('pointerdown', function () { if (artMoveOn()) artAskGyro(); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) artKick(); });
 // 찻잔 김: 작은 WebGL 캔버스에 셰이더로 그린다 (안 되면 김 없이)
+// 게임하는 동안 폰이 숨은 캔버스의 그래픽 메모리를 비우거나 망가뜨리는 일이 있어(처음 화면으로 돌아오면 김이 깨져 보임),
+// 처음 화면을 떠날 때 캔버스를 버리고, 돌아올 때 새 캔버스로 다시 만든다
 var steamGl = null, steamOk = false, steamT = null;
-(function () {
-  var c = $('steamGl'); if (!c) return;
+function steamFree() {
+  if (!steamGl) return;
+  try { var ext = steamGl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext(); } catch (e) {}
+  steamGl = null; steamOk = false; steamT = null;
+}
+function steamInit() {
+  steamFree();
+  var old = $('steamGl'); if (!old) return;
+  var c = document.createElement('canvas'); c.id = 'steamGl'; c.className = old.className; c.width = 170; c.height = 150;
+  old.parentNode.replaceChild(c, old);
   try {
     // 아이패드 사파리에서 비미리곱 알파 캔버스가 흰 네모로 보이는 일이 있어, 미리곱으로 그리고 첫 그림이 나오기 전엔 숨긴다. 맥락을 잃으면 김을 끈다
     c.style.visibility = 'hidden';
     var gl = c.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }); if (!gl) return;
-    c.addEventListener('webglcontextlost', function (e) { e.preventDefault(); steamOk = false; c.style.display = 'none'; });
+    c.addEventListener('webglcontextlost', function (e) { e.preventDefault(); if (steamGl === gl) { steamOk = false; c.style.visibility = 'hidden'; } });
     var vs = 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
     var fs = 'precision mediump float; varying vec2 v; uniform float t;' +
       'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }' +
@@ -1269,7 +1279,8 @@ var steamGl = null, steamOk = false, steamT = null;
     var a = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
     steamT = gl.getUniformLocation(pr, 't'); steamGl = gl; steamOk = true;
   } catch (e) { steamOk = false; }
-})();
+}
+steamInit();
 function steamDraw(t) {
   if (!steamOk) return;
   var on = artMoveOn(), gl = steamGl; if (!on || gl.isContextLost()) { $('steamGl').style.visibility = 'hidden'; return; }
