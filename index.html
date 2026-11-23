@@ -880,12 +880,16 @@ var LINES = {
   whyHouse: ['거기 보내면 {h}에 갈 자리가 없어져요. 댁마다 한 명은 꼭 가야 해요.'],
   whyLine: ['거기 보내면 반짝이는 줄에 갈 자리가 없어져요. 줄마다 한 명은 꼭 가야 해요.'],
   whyCart: ['거기 보내면 수레 둘레에 사람이 넘쳐요.'],
+  deadRow: ['{k}번째 가로줄엔 더 세울 자리가 없어요. 앞에서 세운 자리나 X 중에 어긋난 게 있나 봐요.'],
+  deadCol: ['{k}번째 세로줄엔 더 세울 자리가 없어요. 앞에서 세운 자리나 X 중에 어긋난 게 있나 봐요.'],
+  deadHouse: ['{h}엔 더 보낼 자리가 없어요. 앞에서 세운 자리나 X 중에 어긋난 게 있나 봐요.'],
+  dailyNote: ['이 판은 틀린 자리에 세워도 바로 알려 드리지 않아요. 막히면 그때 말씀드릴게요.'],
   wrongPlain: ['편지가 왔어요. 그 자리는 아니래요.', '거긴 아니에요. 편지가 왔어요.'],
   wrongCart: ['수레에서 받아 갈 사람은 따로 있대요. 편지가 왔어요.'],
   wrongHouse: ['{h}는 다른 칸으로 가야 해요. 편지가 왔어요.', '{h}에서 편지가 왔어요. 그 칸이 아니래요.'],
   wrongOther: ['거기 보내면 {h} 쪽 순회가 꼬여요. 편지가 왔어요.', '{h}에서 편지가 왔어요. 그 자리는 곤란하대요.']
 };
-var FACE = { wrongPlain: 'flustered', whyHouse: 'flustered', whyLine: 'flustered', whyCart: 'flustered', houseBig: 'awkward', cartOver: 'awkward', cartShort: 'awkward', cartCell: 'awkward', wrongCart: 'flustered', wrongHouse: 'flustered', wrongOther: 'flustered', row: 'awkward', house: 'awkward', near: 'awkward', wrong: 'flustered', idle: 'flustered', clear: 'joy' };
+var FACE = { wrongPlain: 'flustered', whyHouse: 'flustered', whyLine: 'flustered', whyCart: 'flustered', deadRow: 'awkward', deadCol: 'awkward', deadHouse: 'awkward', dailyNote: 'base', houseBig: 'awkward', cartOver: 'awkward', cartShort: 'awkward', cartCell: 'awkward', wrongCart: 'flustered', wrongHouse: 'flustered', wrongOther: 'flustered', row: 'awkward', house: 'awkward', near: 'awkward', wrong: 'flustered', idle: 'flustered', clear: 'joy' };
 var POSTSCRIPTS = [
  [
   "인수인계",
@@ -970,7 +974,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 24일 03:00';
+var BUILD = '11월 24일 07:59';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1688,7 +1692,8 @@ function startStage(i) {
   armIdle();
   // 글꼴·그림이 다 자리 잡은 뒤 한 번 더 맞춘다 (판 크기는 줄기만 하니 여러 번 불러도 흔들리지 않는다)
   setTimeout(fitBoard, 80); setTimeout(fitBoard, 600);
-  if (wipBack(i)) { render(); renderMail(); say('resume'); }
+  var resumed = wipBack(i);
+  if (resumed) { render(); renderMail(); say('resume'); }
   if (tuto && tuto.steps.memo) { save.tutoSeen.memo = 1; store(); }
   memoSync();
   if (i >= 3 && !tuto && !save.tutoSeen.memo) {
@@ -1701,6 +1706,7 @@ function startStage(i) {
     var dr = save.dailyRule || (save.dailyRule = {}), lines = [];
     if (carts.length && !save.ruleSeen.cart1 && !dr.cart) { dr.cart = 1; lines.push('수레: 수레 둘레 여덟 칸에는 수레에 적힌 숫자만큼만 관리원을 보냅니다. 수레가 선 칸에는 못 섭니다.'); }
     if (big >= 0 && !save.ruleSeen.big && !dr.big) { dr.big = 1; lines.push('큰 댁: 숫자 2가 붙은 댁에는 관리원을 두 명 보냅니다. 가로줄과 세로줄은 그대로 한 명씩입니다.'); }
+    if (!resumed && (dr.note | 0) < 3) { dr.note = (dr.note | 0) + 1; store(); say('dailyNote'); }
     if (lines.length) {
       store();
       $('nr-t').textContent = '오늘 판의 새 규칙'; $('nrBody').textContent = lines.join(' ');
@@ -1891,9 +1897,40 @@ function afterChange(r, c) {
     }, 230);
   }
   tutoCheck();
+  if (cf.count < P.n && !Object.keys(cf.bad).length) deadCheck(); else if (P) P.dead = '';
   if (cf.count === P.n && Object.keys(cf.bad).length === 0) {
     if (cf.short) { say('cartShort'); play('clash'); } else finish();
   }
+}
+// 막다른 길: 아직 사람이 더 가야 하는 가로줄·세로줄·댁에 세울 수 있는 칸이 하나도 안 남았는지 본다.
+// 정답을 알려 주는 게 아니라 '이미 막혔다'는 것만 알려 준다. 벌점은 없다. 같은 막힘은 한 번만 말한다
+function deadUnit() {
+  var n = P.n, rowHas = [], colHas = [], have = {}, r, c, g;
+  for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (state[r][c] === 2) { rowHas[r] = 1; colHas[c] = 1; have[P.reg[r][c]] = (have[P.reg[r][c]] || 0) + 1; }
+  var quota = function (k) { return k === P.big ? 2 : 1; };
+  var open = function (x, y) {
+    if (state[x][y] !== 0 || cartAt(x, y) || rowHas[x] || colHas[y] || (have[P.reg[x][y]] || 0) >= quota(P.reg[x][y])) return false;
+    for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) if ((dr || dc) && state[x + dr] && state[x + dr][y + dc] === 2) return false;
+    for (var k = 0; k < P.carts.length; k++) { var kt = P.carts[k]; if (Math.abs(kt.r - x) <= 1 && Math.abs(kt.c - y) <= 1 && cartCount(kt) >= kt.k) return false; }
+    return true;
+  };
+  for (r = 0; r < n; r++) if (!rowHas[r]) { var rc = [], ok = false; for (c = 0; c < n; c++) { rc.push([r, c]); if (open(r, c)) ok = true; } if (!ok) return { kind: 'deadRow', key: 'r' + r, k: r + 1, cells: rc }; }
+  for (c = 0; c < n; c++) if (!colHas[c]) { var cc = [], ok2 = false; for (r = 0; r < n; r++) { cc.push([r, c]); if (open(r, c)) ok2 = true; } if (!ok2) return { kind: 'deadCol', key: 'c' + c, k: c + 1, cells: cc }; }
+  for (g = 0; g < P.m; g++) if ((have[g] || 0) < quota(g)) {
+    var gc = [], free = 0; for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (P.reg[r][c] === g) { gc.push([r, c]); if (open(r, c)) free++; }
+    if (free < quota(g) - (have[g] || 0)) return { kind: 'deadHouse', key: 'g' + g, h: houseOf[g].name, cells: gc };
+  }
+  return null;
+}
+function deadCheck() {
+  if (!P || tuto || done) return false;
+  var d = deadUnit();
+  if (!d) { P.dead = ''; return false; }
+  if (P.dead === d.key) return false;
+  P.dead = d.key;
+  say(d.kind, { k: d.k, h: d.h || '' });
+  d.cells.forEach(function (q) { var w = cellEl(q[0], q[1]); w.classList.remove('why'); void w.offsetWidth; w.classList.add('why'); setTimeout(function () { w.classList.remove('why'); }, 2000); });
+  return true;
 }
 function livesOn() { return !daily && !save.easy && chapterOf(save.stage) > 0; }
 function renderMail() {
