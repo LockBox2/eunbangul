@@ -109,6 +109,10 @@ button:disabled { opacity: .35; cursor: default; }
 .chapter h3 { font-size: 1.1em; }
 #settingsVeil .sethead { margin: 14px 0 2px; padding-bottom: 3px; border-bottom: 1px solid rgba(74,58,40,.25); font-size: .82em; font-weight: 700; letter-spacing: .08em; color: #8a6a44; }
 #settingsVeil .sethead:first-of-type { margin-top: 4px; }
+#settingsVeil .orig { margin: 6px 0 8px; font-size: .86em; line-height: 1.55; color: #5a4a36; word-break: keep-all; }
+#settingsVeil .orig2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+#settingsVeil .btnlink { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 12px; text-decoration: none; font-weight: 700; color: #fffaf0; background: linear-gradient(#2e3a72, #1b2250); border: 1px solid #2e3a72; box-shadow: 0 3px 0 #0b0f2a; }
+#settingsVeil .btnlink:active { transform: translateY(2px); box-shadow: 0 1px 0 #0b0f2a; }
 /* 장 머리 그림 띠: 그 장 이야기의 첫 장면을 얇게 잘라 깐다 */
 .chapter.banded { padding-top: 0; overflow: hidden; }
 .chapter .chband { margin: 0 -12px; height: 132px; background-size: cover; background-position: 50% 30%; position: relative; }
@@ -774,6 +778,9 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
       <button type="button" id="wipeYes">정말 지우기</button>
       <button type="button" class="quiet" id="wipeNo">그만두기</button>
     </div>
+    <p class="sethead">원작 소설</p>
+    <p class="orig">《판매왕, 제국을 털다》 — 하르텐 상회가 처음 문을 연 이야기는 소설에 있어요.</p>
+    <div class="pair orig2"><a class="btnlink" href="https://app.notion.com/p/1-40e2699edf2181239060de9cf2df452c" target="_blank" rel="noopener">1부 읽기</a><a class="btnlink" href="https://app.notion.com/p/2-41a2699edf2181e08c19e6eb4566a1b5" target="_blank" rel="noopener">2부 읽기</a></div>
     <p class="build" id="buildStamp"></p>
     <button type="button" data-close="settingsVeil">닫기</button>
   </div>
@@ -963,7 +970,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 23일 12:02';
+var BUILD = '11월 24일 01:56';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
