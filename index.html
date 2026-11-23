@@ -963,7 +963,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 23일 10:57';
+var BUILD = '11월 23일 12:02';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1112,13 +1112,17 @@ setInterval(function () {
 }, 2000);
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) { if (bgm) bgm.pause(); if (actx && actx.state === 'running') { try { actx.suspend(); } catch (e) {} } wipNow(); rWipNow(); if (tStart) { tAcc += Date.now() - tStart; tStart = null; } }
-  else { wakeKick = true; bgmKick(); if (actx && actx.state !== 'running') { try { actx.resume(); } catch (e) {} } if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
+  else { wakeKick = true; bgmKick(); if (actx && save.sound && actx.state !== 'running') { try { actx.resume(); } catch (e) {} } if (!done && !paused && $('play').classList.contains('on')) tStart = Date.now(); }
 });
 // 효과음은 Web Audio로 낸다. 효과음마다 <audio>를 새로 틀면 안드로이드(특히 홈 화면에 깐 앱)가
 // 그걸 새 미디어로 보고 배경 음악을 잠깐씩 멈춘다. Web Audio 소리는 미디어 재생으로 치지 않아 배경 음악을 건드리지 않는다
 var actx = null, sbuf = {};
+// 아이폰·아이패드(사파리 16.4+): 게임 소리를 '배경 소리'로 알려서 유튜브 같은 다른 앱 소리를 끊지 않고 섞여 나게 한다(무음 스위치도 따른다)
+try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
 function sfxInit() {
-  if (actx) { if (actx.state !== 'running') { try { actx.resume(); } catch (e) {} } return; }
+  // 효과음을 끈 사람은 소리 장치를 아예 열지 않는다. 열기만 해도 기기에 따라 다른 앱 소리가 멈춘다
+  if (!save.sound) return;
+  if (actx) { if (actx.state !== 'running') { try { actx.resume(); } catch (e) {} } return; }  // (효과음 켠 경우만 여기 온다)
   var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   try { actx = new AC(); } catch (e) { actx = null; return; }
   Object.keys(SOUNDS).forEach(function (n) {
@@ -1129,7 +1133,7 @@ function sfxInit() {
 }
 // 효과음 길을 다시 연다: 멈춘 소리 판을 깨우고 소리 없는 아주 짧은 소리를 한 번 낸다
 function sfxWake() {
-  if (!actx) return;
+  if (!actx || !save.sound) return;
   try { if (actx.state !== 'running') actx.resume(); var b = actx.createBuffer(1, 1, 22050), s0 = actx.createBufferSource(); s0.buffer = b; s0.connect(actx.destination); s0.start(0); } catch (e) {}
 }
 // 손끝 진동: 안드로이드만 된다 (아이폰 브라우저는 진동을 지원하지 않는다)
@@ -2758,7 +2762,7 @@ $('openSettings').addEventListener('click', function () {
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
 $('optMusic').addEventListener('change', function () { save.music = this.checked; store(); music(); });
-$('optSound').addEventListener('change', function () { save.sound = this.checked; store(); if (save.sound) play('place'); });
+$('optSound').addEventListener('change', function () { save.sound = this.checked; store(); if (save.sound) { sfxInit(); play('place'); } else if (actx) { try { actx.suspend(); } catch (e) {} } });
 $('optBig').addEventListener('change', function () { save.big = this.checked; store(); document.body.classList.toggle('big', save.big); if (P && $('play').classList.contains('on')) { P.fitKey = null; fitBoard(); } });
 $('optEasy').addEventListener('change', function () { save.easy = this.checked; store(); });
 $('optWhy').addEventListener('change', function () { save.why = this.checked; store(); });
