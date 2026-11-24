@@ -977,7 +977,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 24일 11:06';
+var BUILD = '11월 24일 13:00';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1349,7 +1349,7 @@ function renderChapters() {
 
 // 순회표
 // 막힘 알림은 몇 초 동안 '적었습니다' 같은 가벼운 대사에 덮이지 않게 한다
-var sayHold = 0;
+var sayHold = 0, deadTimer = 0;
 function say(key, vars) {
   if (Date.now() < sayHold && (key === 'place' || key === 'idle')) return;
   $('face').src = 'img/rina-' + (FACE[key] || 'base') + '.webp';
@@ -1903,7 +1903,12 @@ function afterChange(r, c) {
     }, 230);
   }
   tutoCheck();
-  if (cf.count < P.n && !Object.keys(cf.bad).length) deadCheck(); else if (P) P.dead = '';
+  // 두 번 톡 쳐서 세우는 사람은 첫 톡에 X가 먼저 쳐진다. 그 X로 막힘 알림이 먼저 뜨지 않게, X를 친 직후엔 두 번째 톡을 기다렸다가 본다
+  clearTimeout(deadTimer);
+  if (cf.count < P.n && !Object.keys(cf.bad).length) {
+    if (r != null && state[r] && state[r][c] === 1) { var pk = P; deadTimer = setTimeout(function () { if (P === pk && !done) { var f = conflicts(); if (f.count < P.n && !Object.keys(f.bad).length) deadCheck(); } }, 600); }
+    else deadCheck();
+  } else if (P) P.dead = '';
   if (cf.count === P.n && Object.keys(cf.bad).length === 0) {
     if (cf.short) { say('cartShort'); play('clash'); } else finish();
   }
