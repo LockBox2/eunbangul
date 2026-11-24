@@ -977,7 +977,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 24일 13:00';
+var BUILD = '11월 24일 13:53';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -2161,7 +2161,7 @@ function tap(r, c) {
     snapshot(); notes[r][c] = notes[r][c] ? 0 : 1; afterChange(null, null); return;
   }
   if (s === 1 && quick) { lastTap = null; tryPlace(r, c); return; }
-  snapshot(); state[r][c] = s === 0 ? 1 : 0; moves++; afterChange(null, null);
+  snapshot(); state[r][c] = s === 0 ? 1 : 0; moves++; afterChange(r, c);
 }
 function tryPlace(r, c) {
   if (done || busy || state[r][c] === 2 || cartAt(r, c)) return;
