@@ -984,7 +984,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 24일 13:57';
+var BUILD = '11월 25일 07:46';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -2668,9 +2668,10 @@ boardEl.addEventListener('pointermove', function (e) {
     if (memoOn && state[drag.start[0]][drag.start[1]] !== 0) { clearTimeout(drag.timer); holdOff(); drag.painting = true; drag.memo = true; drag.noop = true; return; }
     clearTimeout(drag.timer); holdOff(); drag.painting = true; snapshot();
     // X에서 시작해 밀면 지우기, 빈칸에서 시작하면 칠하기. 연습 중에는 칠하기만 한다
-    drag.memo = memoOn && state[drag.start[0]][drag.start[1]] === 0 && !cartAt(drag.start[0], drag.start[1]);
+    // 메모를 편 동안에는 어디서 밀기 시작하든(수레 칸에서 시작해도) 메모 X만 칠한다. 진짜 X가 그려지면 안 된다
+    drag.memo = memoOn;
     drag.erase = state[drag.start[0]][drag.start[1]] === 1 && (!tuto || tuto.steps[tuto.i].expect === 'free');
-    if (drag.memo) { var n0 = notes[drag.start[0]][drag.start[1]]; drag.erase = n0 === 1; if (n0 !== 2) notes[drag.start[0]][drag.start[1]] = drag.erase ? 0 : 1; render(); }
+    if (drag.memo) { if (cartAt(drag.start[0], drag.start[1])) drag.erase = false; else { var n0 = notes[drag.start[0]][drag.start[1]]; drag.erase = n0 === 1; if (n0 !== 2) notes[drag.start[0]][drag.start[1]] = drag.erase ? 0 : 1; } render(); }
     else if (drag.erase) state[drag.start[0]][drag.start[1]] = 0;
     else if (state[drag.start[0]][drag.start[1]] === 0 && !cartAt(drag.start[0], drag.start[1])) state[drag.start[0]][drag.start[1]] = 1;
   }
