@@ -883,13 +883,16 @@ var LINES = {
   deadRow: ['{k}번째 가로줄엔 더 세울 자리가 없어요. 앞에서 세운 자리나 X 중에 어긋난 게 있나 봐요.'],
   deadCol: ['{k}번째 세로줄엔 더 세울 자리가 없어요. 앞에서 세운 자리나 X 중에 어긋난 게 있나 봐요.'],
   deadHouse: ['{h}엔 더 보낼 자리가 없어요. 앞에서 세운 자리나 X 중에 어긋난 게 있나 봐요.'],
+  deadRowX: ['{k}번째 가로줄은 X를 다 쳐서 세울 데가 없어요. 깜빡이는 X 중에 잘못 친 게 있어요.'],
+  deadColX: ['{k}번째 세로줄은 X를 다 쳐서 세울 데가 없어요. 깜빡이는 X 중에 잘못 친 게 있어요.'],
+  deadHouseX: ['{h}는 X를 다 쳐서 보낼 데가 없어요. 깜빡이는 X 중에 잘못 친 게 있어요.'],
   dailyNote: ['이 판은 틀린 자리에 세워도 바로 알려 드리지 않아요. 막히면 그때 말씀드릴게요.'],
   wrongPlain: ['편지가 왔어요. 그 자리는 아니래요.', '거긴 아니에요. 편지가 왔어요.'],
   wrongCart: ['수레에서 받아 갈 사람은 따로 있대요. 편지가 왔어요.'],
   wrongHouse: ['{h}는 다른 칸으로 가야 해요. 편지가 왔어요.', '{h}에서 편지가 왔어요. 그 칸이 아니래요.'],
   wrongOther: ['거기 보내면 {h} 쪽 순회가 꼬여요. 편지가 왔어요.', '{h}에서 편지가 왔어요. 그 자리는 곤란하대요.']
 };
-var FACE = { wrongPlain: 'flustered', whyHouse: 'flustered', whyLine: 'flustered', whyCart: 'flustered', deadRow: 'awkward', deadCol: 'awkward', deadHouse: 'awkward', dailyNote: 'base', houseBig: 'awkward', cartOver: 'awkward', cartShort: 'awkward', cartCell: 'awkward', wrongCart: 'flustered', wrongHouse: 'flustered', wrongOther: 'flustered', row: 'awkward', house: 'awkward', near: 'awkward', wrong: 'flustered', idle: 'flustered', clear: 'joy' };
+var FACE = { wrongPlain: 'flustered', whyHouse: 'flustered', whyLine: 'flustered', whyCart: 'flustered', deadRow: 'awkward', deadCol: 'awkward', deadHouse: 'awkward', deadRowX: 'awkward', deadColX: 'awkward', deadHouseX: 'awkward', dailyNote: 'base', houseBig: 'awkward', cartOver: 'awkward', cartShort: 'awkward', cartCell: 'awkward', wrongCart: 'flustered', wrongHouse: 'flustered', wrongOther: 'flustered', row: 'awkward', house: 'awkward', near: 'awkward', wrong: 'flustered', idle: 'flustered', clear: 'joy' };
 var POSTSCRIPTS = [
  [
   "인수인계",
@@ -974,7 +977,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 24일 07:59';
+var BUILD = '11월 24일 11:06';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1345,7 +1348,10 @@ function renderChapters() {
 }
 
 // 순회표
+// 막힘 알림은 몇 초 동안 '적었습니다' 같은 가벼운 대사에 덮이지 않게 한다
+var sayHold = 0;
 function say(key, vars) {
+  if (Date.now() < sayHold && (key === 'place' || key === 'idle')) return;
   $('face').src = 'img/rina-' + (FACE[key] || 'base') + '.webp';
   var t = pick(LINES[key]);
   for (var k in (vars || {})) t = t.replace('{' + k + '}', vars[k]);
@@ -1644,7 +1650,7 @@ function startStage(i) {
   for (var q = 0; q < cs.length; q += 3) carts.push({ r: Number(cs[q]), c: Number(cs[q + 1]), k: Number(cs[q + 2]) });
   var m = 0; reg.forEach(function (row) { row.forEach(function (g) { if (g + 1 > m) m = g + 1; }); });
   var big = Z[6] ? Z[6].charCodeAt(0) - 65 : -1;
-  P = { n: n, m: m, reg: reg, sol: sol, carts: carts, big: big };
+  P = { n: n, m: m, reg: reg, sol: sol, carts: carts, big: big }; sayHold = 0;
   state = []; undoStack = []; moves = 0; hints = 0; done = false; busy = false; mistakes = 0; extraUsed = false; lastTap = null; slips = 0; hintPen = 0; tAcc = 0; tStart = Date.now();
   for (r = 0; r < n; r++) state.push(new Array(n).fill(0));
   notes = state.map(function (row) { return row.slice(); }); memoOn = false;
@@ -1908,17 +1914,27 @@ function deadUnit() {
   var n = P.n, rowHas = [], colHas = [], have = {}, r, c, g;
   for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (state[r][c] === 2) { rowHas[r] = 1; colHas[c] = 1; have[P.reg[r][c]] = (have[P.reg[r][c]] || 0) + 1; }
   var quota = function (k) { return k === P.big ? 2 : 1; };
-  var open = function (x, y) {
-    if (state[x][y] !== 0 || cartAt(x, y) || rowHas[x] || colHas[y] || (have[P.reg[x][y]] || 0) >= quota(P.reg[x][y])) return false;
+  var open = function (x, y, ignX) {
+    if ((ignX ? state[x][y] === 2 : state[x][y] !== 0) || cartAt(x, y) || rowHas[x] || colHas[y] || (have[P.reg[x][y]] || 0) >= quota(P.reg[x][y])) return false;
     for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) if ((dr || dc) && state[x + dr] && state[x + dr][y + dc] === 2) return false;
     for (var k = 0; k < P.carts.length; k++) { var kt = P.carts[k]; if (Math.abs(kt.r - x) <= 1 && Math.abs(kt.c - y) <= 1 && cartCount(kt) >= kt.k) return false; }
     return true;
   };
-  for (r = 0; r < n; r++) if (!rowHas[r]) { var rc = [], ok = false; for (c = 0; c < n; c++) { rc.push([r, c]); if (open(r, c)) ok = true; } if (!ok) return { kind: 'deadRow', key: 'r' + r, k: r + 1, cells: rc }; }
-  for (c = 0; c < n; c++) if (!colHas[c]) { var cc = [], ok2 = false; for (r = 0; r < n; r++) { cc.push([r, c]); if (open(r, c)) ok2 = true; } if (!ok2) return { kind: 'deadCol', key: 'c' + c, k: c + 1, cells: cc }; }
+  // 막힌 까닭이 X뿐이면(X를 걷으면 자리가 생기면) X 탓이라고 말하고, 그 X 칸만 깜빡인다
+  var judge = function (kind, key, cells, need, extra) {
+    var free = cells.filter(function (q) { return open(q[0], q[1]); }).length;
+    if (free >= need) return null;
+    var xs = cells.filter(function (q) { return state[q[0]][q[1]] === 1 && open(q[0], q[1], true); });
+    var d = xs.length + free >= need ? { kind: kind + 'X', key: key, cells: xs } : { kind: kind, key: key, cells: cells };
+    for (var e in extra) d[e] = extra[e];
+    return d;
+  };
+  var d;
+  for (r = 0; r < n; r++) if (!rowHas[r]) { var rc = []; for (c = 0; c < n; c++) rc.push([r, c]); if ((d = judge('deadRow', 'r' + r, rc, 1, { k: r + 1 }))) return d; }
+  for (c = 0; c < n; c++) if (!colHas[c]) { var cc = []; for (r = 0; r < n; r++) cc.push([r, c]); if ((d = judge('deadCol', 'c' + c, cc, 1, { k: c + 1 }))) return d; }
   for (g = 0; g < P.m; g++) if ((have[g] || 0) < quota(g)) {
-    var gc = [], free = 0; for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (P.reg[r][c] === g) { gc.push([r, c]); if (open(r, c)) free++; }
-    if (free < quota(g) - (have[g] || 0)) return { kind: 'deadHouse', key: 'g' + g, h: houseOf[g].name, cells: gc };
+    var gc = []; for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (P.reg[r][c] === g) gc.push([r, c]);
+    if ((d = judge('deadHouse', 'g' + g, gc, quota(g) - (have[g] || 0), { h: houseOf[g].name }))) return d;
   }
   return null;
 }
@@ -1928,8 +1944,9 @@ function deadCheck() {
   if (!d) { P.dead = ''; return false; }
   if (P.dead === d.key) return false;
   P.dead = d.key;
-  say(d.kind, { k: d.k, h: d.h || '' });
+  sayHold = 0; say(d.kind, { k: d.k, h: d.h || '' });
   d.cells.forEach(function (q) { var w = cellEl(q[0], q[1]); w.classList.remove('why'); void w.offsetWidth; w.classList.add('why'); setTimeout(function () { w.classList.remove('why'); }, 2000); });
+  sayHold = Date.now() + 4000;
   return true;
 }
 function livesOn() { return !daily && !save.easy && chapterOf(save.stage) > 0; }
