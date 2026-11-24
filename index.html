@@ -347,6 +347,12 @@ main#cut #cutSkip { color: #d9d3c2; left: 14px; bottom: 24px; text-shadow: 0 1px
 .actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
 .actions button { white-space: nowrap; }
 .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#play > .actions:not(#ractions) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+#play > .actions:not(#ractions) button { font-size: .82em; letter-spacing: -.02em; padding-left: 2px; padding-right: 2px; }
+.actions #redo:disabled, .actions #undo:disabled { opacity: .45; }
+.cell .land { position: absolute; inset: -8%; border: 3px solid #ffe08a; border-radius: 24%; pointer-events: none; z-index: 3; animation: land .5s ease-out forwards; box-shadow: 0 0 10px rgba(255,224,138,.8); }
+@keyframes land { 0% { transform: scale(.55); opacity: 1; } 100% { transform: scale(1.45); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cell .land { animation-duration: .01s; } }
 .actions button, .actions #hint { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 7px 4px 9px; font-size: .88em; }
 .actions button svg { width: 26px; height: 26px; display: block; color: #dfe5f7; }
 .actions #hint img { width: 30px; height: 30px; margin: -2px 0; }
@@ -619,6 +625,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="houses" id="houses"></div>
   <div class="actions">
     <button type="button" id="undo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 4 8l5 5"/><path d="M4 8h10a6 6 0 0 1 0 12h-3"/></svg>되돌리기</button>
+    <button type="button" id="redo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3l5 5-5 5"/><path d="M20 8H10a6 6 0 0 0 0 12h3"/></svg>앞으로</button>
     <button type="button" id="reset"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9.5 12h6M9.5 16h4"/></svg><span id="resetLabel">다시 짜기</span></button>
     <button type="button" id="hint" aria-label="막시밀리안에게 묻기"><img src="img/donkey-base.webp" alt="" width="260" height="260">막시밀리안</button>
   </div>
@@ -977,11 +984,11 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 24일 13:53';
+var BUILD = '11월 24일 13:57';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
-var P = null, state = [], notes = [], memoOn = false, undoStack = [], moves = 0, hints = 0, done = false, houseOf = [], idleTimer = null;
+var P = null, state = [], notes = [], memoOn = false, undoStack = [], redoStack = [], moves = 0, hints = 0, done = false, houseOf = [], idleTimer = null;
 var mistakes = 0, extraUsed = false, lastTap = null, MAX_MAIL = 3, busy = false;
 // 은방울 점수와 걸린 시간. slips·hintPen은 연습으로 시킨 동작을 빼고 센다
 var slips = 0, hintPen = 0, tStart = null, tAcc = 0;
@@ -1151,7 +1158,18 @@ function sfxWake() {
   try { if (actx.state !== 'running') actx.resume(); var b = actx.createBuffer(1, 1, 22050), s0 = actx.createBufferSource(); s0.buffer = b; s0.connect(actx.destination); s0.start(0); } catch (e) {}
 }
 // 손끝 진동: 안드로이드만 된다 (아이폰 브라우저는 진동을 지원하지 않는다)
-function buzz(pattern) { if (save.buzz && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
+// 아이폰 사파리는 진동 API가 없다. iOS 18부터 '스위치' 체크박스를 누르면 기기가 톡 울리는 걸 빌려 쓴다 (손을 떼는 순간에만 확실히 울린다)
+var iosTap = (function () { try { var i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); return !navigator.vibrate && 'switch' in i && /iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document; } catch (e) { return false; } })();
+var iosLab = null;
+function iosBuzz(times) {
+  if (!iosLab) { iosLab = document.createElement('label'); iosLab.setAttribute('aria-hidden', 'true'); iosLab.style.cssText = 'position:fixed;left:-99px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none'; var i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); i.tabIndex = -1; iosLab.appendChild(i); document.body.appendChild(iosLab); }
+  for (var k = 0; k < times; k++) setTimeout(function () { try { iosLab.click(); } catch (e) {} }, k * 90);
+}
+function buzz(pattern) {
+  if (save.buzz === false) return;
+  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
+  else if (iosTap) iosBuzz(typeof pattern === 'number' ? 1 : Math.min(3, Math.ceil(pattern.length / 2)));
+}
 // ── 판 끝 마을: 판을 다 짜면 그 판이 기울어 마을이 되고 관리원이 각 댁에 들어간다 (설정에서 끌 수 있다) ──
 // 기본은 켬. 폰에서 움직임 줄이기를 켜 둔 사람은 처음부터 끔. 설정에서 바꾼 값이 있으면 그것을 따른다
 function villageOn() { return save.village == null ? !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) : !!save.village; }
@@ -1651,7 +1669,7 @@ function startStage(i) {
   var m = 0; reg.forEach(function (row) { row.forEach(function (g) { if (g + 1 > m) m = g + 1; }); });
   var big = Z[6] ? Z[6].charCodeAt(0) - 65 : -1;
   P = { n: n, m: m, reg: reg, sol: sol, carts: carts, big: big }; sayHold = 0;
-  state = []; undoStack = []; moves = 0; hints = 0; done = false; busy = false; mistakes = 0; extraUsed = false; lastTap = null; slips = 0; hintPen = 0; tAcc = 0; tStart = Date.now();
+  state = []; undoStack = []; redoStack = []; moves = 0; hints = 0; done = false; busy = false; mistakes = 0; extraUsed = false; lastTap = null; slips = 0; hintPen = 0; tAcc = 0; tStart = Date.now();
   for (r = 0; r < n; r++) state.push(new Array(n).fill(0));
   notes = state.map(function (row) { return row.slice(); }); memoOn = false;
   // 관리원 얼굴 아홉: 줄마다 한 사람. 같은 판은 언제 열어도 같은 사람이 같은 줄에 선다
@@ -1832,6 +1850,7 @@ function shutCells() {
   return shut;
 }
 function render() {
+  var rdb = document.getElementById('redo'); if (rdb) rdb.disabled = !redoStack.length;
   var n = P.n, cf = conflicts(), shut = shutCells(), real = 0;
   for (var q = 0; q < n; q++) for (var q2 = 0; q2 < n; q2++) if (state[q][q2] === 2) real++;
   var sweep = real > (P.real || 0); P.real = real;
@@ -1888,13 +1907,14 @@ function wipBack(i) {
   extraUsed = !!w.x; moves = Math.max(0, w.mv | 0); tAcc = Math.max(0, w.t | 0) * 1000; tStart = Date.now();
   return true;
 }
-function snapshot() { var shot = state.map(function (row) { return row.slice(); }); shot.nt = notes.map(function (row) { return row.slice(); }); undoStack.push(shot); if (undoStack.length > 200) undoStack.shift(); }
+function snapshot() { var shot = state.map(function (row) { return row.slice(); }); shot.nt = notes.map(function (row) { return row.slice(); }); undoStack.push(shot); if (undoStack.length > 200) undoStack.shift(); redoStack = []; }
 function afterChange(r, c) {
   var cf = render(); armIdle();
   if (r != null && state[r][c] === 2) {
     var k = cf.kinds[r + ',' + c];
     say(k || 'place', { h: houseOf[P.reg[r][c]].name });
     play(k ? 'clash' : 'place');
+    var lc = cellEl(r, c), ring = document.createElement('span'); ring.className = 'land'; lc.appendChild(ring); setTimeout(function () { ring.remove(); }, 600);
     if (k) setTimeout(function () {
       Object.keys(cf.bad).forEach(function (key) {
         var p = key.split(','), el = cellEl(Number(p[0]), Number(p[1]));
@@ -2213,7 +2233,7 @@ function blinkHouse(g) {
   })(cellEl(r, c));
 }
 function wrong(r, c) {
-  mistakes++; moves++; if (!guided()) slips++;
+  mistakes++; moves++; if (!guided()) slips++; redoStack = [];
   state[r][c] = 1; render(); renderMail(); armIdle();
   var el = cellEl(r, c); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
   play('clash');
@@ -2677,7 +2697,11 @@ boardEl.addEventListener('keydown', function (e) {
   e.preventDefault();
   if (e.key === 'Enter') tryPlace(Number(t.dataset.r), Number(t.dataset.c)); else tap(Number(t.dataset.r), Number(t.dataset.c));
 });
-$('undo').addEventListener('click', function () { if (done || busy || !undoStack.length || !tutoOk('undo')) return; state = undoStack.pop(); if (state.nt) { notes = state.nt; delete state.nt; } if (tuto) tuto.undone = true; afterChange(null, null); });
+function shotNow() { var cur = state.map(function (row) { return row.slice(); }); cur.nt = notes.map(function (row) { return row.slice(); }); return cur; }
+function shotLoad(x) { state = x; if (state.nt) { notes = state.nt; delete state.nt; } }
+$('undo').addEventListener('click', function () { if (done || busy || !undoStack.length || !tutoOk('undo')) return; redoStack.push(shotNow()); shotLoad(undoStack.pop()); if (tuto) tuto.undone = true; afterChange(null, null); });
+// 앞으로: 되돌린 걸 다시 밟는다. 되돌린 뒤 새로 한 수를 두면 앞으로 갈 길은 사라진다
+$('redo').addEventListener('click', function () { if (done || busy || !redoStack.length || !tutoOk('redo')) return; undoStack.push(shotNow()); shotLoad(redoStack.pop()); afterChange(null, null); });
 $('tutoSkip').addEventListener('click', tutoEnd);
 $('memoBtn').addEventListener('click', function () {
   if (done || busy || !tutoOk('memo')) return;
@@ -2823,7 +2847,7 @@ $('toChapters').addEventListener('click', function () { resLeave('chapters'); })
 $('resHome').addEventListener('click', function () { resLeave('home'); });
 $('toEnd').addEventListener('click', function () { resLeave('home'); });
 $('openSettings').addEventListener('click', function () {
-  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optMove').checked = artMoveOn(); $('optVillage').checked = villageOn(); $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
+  $('optReact').checked = save.react; $('optSound').checked = save.sound; $('optMusic').checked = save.music !== false; $('optBig').checked = save.big; $('optWhy').checked = save.why !== false; $('optPat').checked = save.pat !== false; $('optMove').checked = artMoveOn(); $('optVillage').checked = villageOn(); $('optBuzz').checked = save.buzz !== false; $('optBuzzRow').hidden = !navigator.vibrate && !iosTap; wallsUI(); $('optOpen').checked = save.openAll; $('optEasy').checked = save.easy;
   $('wipeAsk').hidden = true; $('buildStamp').textContent = '시험판 · ' + BUILD; $('settingsVeil').classList.add('on');
 });
 $('optReact').addEventListener('change', function () { save.react = this.checked; store(); });
