@@ -348,6 +348,8 @@ main#cut #cutSkip { color: #d9d3c2; left: 14px; bottom: 24px; text-shadow: 0 1px
 .actions button { white-space: nowrap; }
 .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #play > .actions:not(#ractions) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+#memoApply { align-self: center; margin: -4px 0 -2px; padding: 7px 18px; border-radius: 999px; border: 2px solid #c9a24a; background: linear-gradient(#fff6dc, #f1dca6); color: #3a2a12; font-weight: 700; font-size: .92em; box-shadow: 0 2px 0 rgba(0,0,0,.35); animation: pop .22s ease-out; }
+#memoApply b { color: #b4472e; }
 #play > .actions:not(#ractions) button { font-size: .82em; letter-spacing: -.02em; padding-left: 2px; padding-right: 2px; }
 .actions #redo:disabled, .actions #undo:disabled { opacity: .45; }
 .cell .land { position: absolute; inset: -8%; border: 3px solid #ffe08a; border-radius: 24%; pointer-events: none; z-index: 3; animation: land .5s ease-out forwards; box-shadow: 0 0 10px rgba(255,224,138,.8); }
@@ -623,6 +625,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #
   <div class="board-wrap" id="rwrap"><div class="rboard" id="rboard"><div class="rgrid" id="rgrid"></div></div></div>
   <div class="board-wrap"><div class="board" id="board"></div></div>
   <div class="houses" id="houses"></div>
+  <button type="button" id="memoApply" hidden>메모대로 세우기 · <b id="memoApplyN">0</b>명</button>
   <div class="actions">
     <button type="button" id="undo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 4 8l5 5"/><path d="M4 8h10a6 6 0 0 1 0 12h-3"/></svg>되돌리기</button>
     <button type="button" id="redo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3l5 5-5 5"/><path d="M20 8H10a6 6 0 0 0 0 12h3"/></svg>앞으로</button>
@@ -984,7 +987,7 @@ var MEMOS = {
  ]
 };
 var CHAPTER_SIZE = 20, SET_VERSION = 242;
-var BUILD = '11월 25일 07:46';
+var BUILD = '11월 26일 11:07';
 
 var $ = function (id) { return document.getElementById(id); };
 var boardEl = $('board'), bubbleEl = $('bubble');
@@ -1837,6 +1840,32 @@ function memoSync() {
   var rb = $('reset'); rb.classList.toggle('memoClear', memoOn);
   $('resetLabel').textContent = memoOn ? '메모 지우기' : '다시 짜기';
   rb.setAttribute('aria-label', memoOn ? '메모 지우기' : '다시 짜기');
+  // 연필을 접은 화면에 메모 관리원이 남아 있으면 '메모대로 세우기'를 띄운다
+  var mk = 0; if (P && notes.length) for (var r = 0; r < P.n; r++) for (var c = 0; c < P.n; c++) if (notes[r] && notes[r][c] === 2 && state[r] && state[r][c] === 0) mk++;
+  var ma = $('memoApply'); ma.hidden = !mk || memoOn || done || !!tuto; $('memoApplyN').textContent = mk;
+}
+// 메모대로 세우기: 메모 X는 진짜 X로, 메모 관리원은 위에서부터 차례로 진짜로 세운다.
+// 편지가 오는 판에서는 손으로 세울 때와 똑같이, 틀린 자리를 만나면 거기서 멈추고 편지 한 통. 나머지는 메모로 남는다
+function memoApply() {
+  if (!P || done || busy || memoOn || tuto) return;
+  var n = P.n, list = [], r, c;
+  for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (notes[r][c] === 2 && state[r][c] === 0 && !cartAt(r, c)) list.push([r, c]);
+  if (!list.length) return;
+  snapshot();
+  for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (notes[r][c] === 1 && state[r][c] === 0 && !cartAt(r, c)) { state[r][c] = 1; notes[r][c] = 0; }
+  var bad = null, last = null;
+  for (var i = 0; i < list.length; i++) {
+    var q = list[i]; r = q[0]; c = q[1];
+    if (livesOn() && P.sol[r] !== c) { bad = q; break; }
+    if (P.sol[r] !== c && !guided()) {
+      var astray = false;
+      for (var wr = 0; wr < n && !astray; wr++) for (var wc = 0; wc < n; wc++) if (state[wr][wc] === 2 && P.sol[wr] !== wc) { astray = true; break; }
+      if (!astray) slips++;
+    }
+    state[r][c] = 2; notes[r][c] = 0; moves++; last = q;
+  }
+  if (bad) { afterChange(null, null); notes[bad[0]][bad[1]] = 0; wrong(bad[0], bad[1]); return; }
+  afterChange(last[0], last[1]);
 }
 // 이미 관리원이 못 가게 된 칸(같은 줄, 다 찬 댁, 붙은 자리)인지. 그런 칸의 메모 점은 저절로 지운다
 function shutCells() {
@@ -2702,6 +2731,7 @@ function shotNow() { var cur = state.map(function (row) { return row.slice(); })
 function shotLoad(x) { state = x; if (state.nt) { notes = state.nt; delete state.nt; } }
 $('undo').addEventListener('click', function () { if (done || busy || !undoStack.length || !tutoOk('undo')) return; redoStack.push(shotNow()); shotLoad(undoStack.pop()); if (tuto) tuto.undone = true; afterChange(null, null); });
 // 앞으로: 되돌린 걸 다시 밟는다. 되돌린 뒤 새로 한 수를 두면 앞으로 갈 길은 사라진다
+$('memoApply').addEventListener('click', memoApply);
 $('redo').addEventListener('click', function () { if (done || busy || !redoStack.length || !tutoOk('redo')) return; undoStack.push(shotNow()); shotLoad(redoStack.pop()); afterChange(null, null); });
 $('tutoSkip').addEventListener('click', tutoEnd);
 $('memoBtn').addEventListener('click', function () {
